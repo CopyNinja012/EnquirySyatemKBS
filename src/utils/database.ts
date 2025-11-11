@@ -1,199 +1,194 @@
-// ✅ Detect if running inside Electron
-const isElectron = (): boolean => {
-  try {
-    return typeof window !== "undefined" && !!(window as any).electronAPI;
-  } catch {
-    return false;
-  }
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  writeBatch,
+  Timestamp,
+  query,
+  where,
+} from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+// Collection names
+const COLLECTIONS = {
+  ENQUIRIES: 'enquiries',
+  USERS: 'users',
+  ADVERTISEMENTS: 'advertisements',
 };
 
-// ❌ Throw error if not in Electron (force developers to use electron:dev)
-const enforceElectron = (operation: string) => {
-  if (!isElectron()) {
-    const errorMsg = `
-❌ ERROR: ${operation} requires Electron!
-
-You're running in browser mode (npm run dev).
-Data will NOT persist in browser storage.
-
-✅ USE THIS INSTEAD:
-   npm run electron:dev
-
-This ensures data is stored in:
-C:\\Users\\<You>\\AppData\\Roaming\\DesktopCRM\\data.json
-    `.trim();
-    
-    console.error(errorMsg);
-    alert(errorMsg);
-    throw new Error(`${operation} requires Electron mode. Use: npm run electron:dev`);
-  }
-};
-
-// ✅ Database API (Electron ONLY - no browser fallback)
-export const db = {
+// ✅ Firebase Database API
+export const firestoreDB = {
   // 🧾 Enquiries
   enquiries: {
-    async getAll() {
-      console.log("🔍 database.ts: enquiries.getAll() called");
-      enforceElectron("Get Enquiries");
-      
+    async getAll(): Promise<any[]> {
       try {
-        console.log("📡 Calling Electron API...");
-        const result = await (window as any).electronAPI.enquiries.getAll();
-        console.log("📦 Electron returned:", result);
-        
-        if (result?.success) {
-          console.log("✅ Loaded", result.data?.length || 0, "enquiries from file");
-          return result.data || [];
-        }
-        
-        console.error("❌ Electron returned error:", result);
-        return [];
-      } catch (err) {
-        console.error("❌ Electron enquiries.getAll failed:", err);
+        const querySnapshot = await getDocs(collection(db, COLLECTIONS.ENQUIRIES));
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        console.log('✅ Loaded', data.length, 'enquiries from Firestore');
+        return data;
+      } catch (error) {
+        console.error('❌ Error fetching enquiries:', error);
         return [];
       }
     },
 
-    async add(enquiry: any) {
-      console.log("➕ database.ts: enquiries.add() called");
-      enforceElectron("Add Enquiry");
-      
+    async add(enquiry: any): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
-        console.log("📡 Adding via Electron API...");
-        const result = await (window as any).electronAPI.enquiries.add(enquiry);
-        console.log("✅ Electron add result:", result);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        console.error("❌ Electron add failed:", err);
-        return { success: false };
+        const docRef = await addDoc(collection(db, COLLECTIONS.ENQUIRIES), {
+          ...enquiry,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+        console.log('✅ Enquiry added with ID:', docRef.id);
+        return { success: true, id: docRef.id };
+      } catch (error) {
+        console.error('❌ Error adding enquiry:', error);
+        return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any) {
-      console.log("✏️ database.ts: enquiries.update() called");
-      enforceElectron("Update Enquiry");
-      
+    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.enquiries.update(id, updates);
-        console.log("✅ Electron update result:", result);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        console.error("❌ Electron update failed:", err);
-        return { success: false };
+        const docRef = doc(db, COLLECTIONS.ENQUIRIES, id);
+        await updateDoc(docRef, {
+          ...updates,
+          updatedAt: Timestamp.now(),
+        });
+        console.log('✅ Enquiry updated:', id);
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Error updating enquiry:', error);
+        return { success: false, error };
       }
     },
 
-    async delete(id: string) {
-      console.log("🗑️ database.ts: enquiries.delete() called");
-      enforceElectron("Delete Enquiry");
-      
+    async delete(id: string): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.enquiries.delete(id);
-        console.log("✅ Electron delete result:", result);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        console.error("❌ Electron delete failed:", err);
-        return { success: false };
+        await deleteDoc(doc(db, COLLECTIONS.ENQUIRIES, id));
+        console.log('✅ Enquiry deleted:', id);
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Error deleting enquiry:', error);
+        return { success: false, error };
       }
     },
   },
 
   // 👤 Users
   users: {
-    async getAll() {
-      enforceElectron("Get Users");
+    async getAll(): Promise<any[]> {
       try {
-        const result = await (window as any).electronAPI.users.getAll();
-        return result?.success ? result.data || [] : [];
-      } catch (err) {
-        console.error("❌ Electron users.getAll failed:", err);
+        const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.error('❌ Error fetching users:', error);
         return [];
       }
     },
 
-    async add(user: any) {
-      enforceElectron("Add User");
+    async add(user: any): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.users.add(user);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
+          ...user,
+          createdAt: Timestamp.now(),
+        });
+        return { success: true, id: docRef.id };
+      } catch (error) {
+        console.error('❌ Error adding user:', error);
+        return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any) {
-      enforceElectron("Update User");
+    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.users.update(id, updates);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        await updateDoc(doc(db, COLLECTIONS.USERS, id), updates);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
       }
     },
 
-    async delete(id: string) {
-      enforceElectron("Delete User");
+    async delete(id: string): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.users.delete(id);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        await updateDoc(doc(db, COLLECTIONS.USERS, id), { isActive: false });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
       }
     },
   },
 
   // 📢 Advertisements
   advertisements: {
-    async getAll() {
-      enforceElectron("Get Advertisements");
+    async getAll(): Promise<any[]> {
       try {
-        const result = await (window as any).electronAPI.advertisements.getAll();
-        return result?.success ? result.data || [] : [];
-      } catch (err) {
-        console.error("❌ Electron advertisements.getAll failed:", err);
+        const querySnapshot = await getDocs(collection(db, COLLECTIONS.ADVERTISEMENTS));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.error('❌ Error fetching advertisements:', error);
         return [];
       }
     },
 
-    async add(advertisement: any) {
-      enforceElectron("Add Advertisement");
+    async add(advertisement: any): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.advertisements.add(advertisement);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        const docRef = await addDoc(collection(db, COLLECTIONS.ADVERTISEMENTS), {
+          ...advertisement,
+          importedAt: Timestamp.now(),
+        });
+        return { success: true, id: docRef.id };
+      } catch (error) {
+        return { success: false, error };
       }
     },
 
-    async bulkAdd(advertisements: any[]) {
-      enforceElectron("Bulk Add Advertisements");
+    async bulkAdd(advertisements: any[]): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.advertisements.bulkAdd(advertisements);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        const batch = writeBatch(db);
+        const collectionRef = collection(db, COLLECTIONS.ADVERTISEMENTS);
+
+        advertisements.forEach((ad) => {
+          const docRef = doc(collectionRef);
+          batch.set(docRef, {
+            ...ad,
+            importedAt: Timestamp.now(),
+          });
+        });
+
+        await batch.commit();
+        console.log('✅ Bulk added', advertisements.length, 'advertisements');
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Bulk add error:', error);
+        return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any) {
-      enforceElectron("Update Advertisement");
+    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.advertisements.update(id, updates);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        await updateDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, id), updates);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
       }
     },
 
-    async delete(id: string) {
-      enforceElectron("Delete Advertisement");
+    async delete(id: string): Promise<{ success: boolean; error?: any }> {
       try {
-        const result = await (window as any).electronAPI.advertisements.delete(id);
-        return result?.success ? result : { success: false };
-      } catch (err) {
-        return { success: false };
+        await deleteDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, id));
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
       }
     },
   },
 };
+
+// ✅ Export default for convenience
+export default firestoreDB;

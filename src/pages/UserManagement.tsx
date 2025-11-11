@@ -21,6 +21,7 @@ const UserManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -42,8 +43,13 @@ const UserManagement: React.FC = () => {
   }, []);
 
   const loadUsers = async () => {
-    const allUsers = await authUtils.getAllUsers(); // ✅ Added await
-    setUsers(allUsers);
+    try {
+      const allUsers = await authUtils.getAllUsers();
+      setUsers(allUsers);
+    } catch (error) {
+      console.error("Error loading users:", error);
+      showToast("Failed to load users", "error");
+    }
   };
 
   const resetForm = () => {
@@ -61,6 +67,7 @@ const UserManagement: React.FC = () => {
   const validateForm = async (isEdit: boolean = false): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
 
+    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = "Username is required";
     } else if (formData.username.length < 3) {
@@ -68,28 +75,45 @@ const UserManagement: React.FC = () => {
     } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
       newErrors.username =
         "Username can only contain letters, numbers, and underscores";
-    } else if (
-      await authUtils.usernameExists(
-        // ✅ Added await
+    } else {
+      const usernameExists = await authUtils.usernameExists(
         formData.username,
         isEdit ? selectedUser?.id : undefined
-      )
-    ) {
-      newErrors.username = "Username already exists";
+      );
+      if (usernameExists) {
+        newErrors.username = "Username already exists";
+      }
     }
 
-    if (!isEdit && !formData.password.trim()) {
-      newErrors.password = "Password is required";
-    } else if (!isEdit && formData.password.length < 6) {
+    // Password validation (required for new users, optional for edit)
+    if (!isEdit) {
+      if (!formData.password.trim()) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 6) {
+        newErrors.password = "Password must be at least 6 characters";
+      }
+    } else if (formData.password && formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
 
+    // Full name validation
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
     }
 
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Email validation (REQUIRED for Firebase)
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required for Firebase Authentication";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email address";
+    } else {
+      const emailExists = await authUtils.emailExists(
+        formData.email,
+        isEdit ? selectedUser?.id : undefined
+      );
+      if (emailExists) {
+        newErrors.email = "Email already exists";
+      }
     }
 
     setErrors(newErrors);
@@ -97,36 +121,51 @@ const UserManagement: React.FC = () => {
   };
 
   const handleAddUser = async () => {
-    // ✅ Made async
     if (!(await validateForm())) {
-      // ✅ Added await
       showToast("Please fix the errors before saving", "error");
       return;
     }
 
+    setIsLoading(true);
     try {
-      authUtils.addUser({
-        ...formData,
-        createdBy: currentUser?.id,
-        isActive: true,
-      });
+      await authUtils.addUser(
+        {
+          username: formData.username,
+          fullName: formData.fullName,
+          email: formData.email,
+          role: formData.role,
+          createdBy: currentUser?.id,
+          isActive: true,
+        },
+        formData.password // Password as second parameter
+      );
+
       showToast("User added successfully", "success");
-      loadUsers();
+      await loadUsers();
       setShowAddModal(false);
       resetForm();
-    } catch (error) {
-      showToast("Failed to add user", "error");
+    } catch (error: any) {
+      console.error("Error adding user:", error);
+
+      // Handle specific Firebase errors
+      let errorMessage = "Failed to add user";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showToast(errorMessage, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEditUser = async () => {
-    // ✅ Made async
     if (!selectedUser || !(await validateForm(true))) {
-      // ✅ Added await
       showToast("Please fix the errors before saving", "error");
       return;
     }
 
+    setIsLoading(true);
     try {
       const updates: Partial<User> = {
         username: formData.username,
@@ -135,22 +174,38 @@ const UserManagement: React.FC = () => {
         role: formData.role,
       };
 
+      // Note: Firebase doesn't allow password updates through Firestore
+      // You would need to use Firebase Auth's updatePassword() for this
+      // For now, we'll show a message if they try to change password
       if (formData.password) {
-        updates.password = formData.password;
+        showToast(
+          "Note: Password updates require re-authentication. User should use 'Forgot Password'",
+          "error"
+        );
+        setIsLoading(false);
+        return;
       }
 
-      authUtils.updateUser(selectedUser.id, updates);
-      showToast("User updated successfully", "success");
-      loadUsers();
-      setShowEditModal(false);
-      setSelectedUser(null);
-      resetForm();
-    } catch (error) {
-      showToast("Failed to update user", "error");
+      const success = await authUtils.updateUser(selectedUser.id, updates);
+
+      if (success) {
+        showToast("User updated successfully", "success");
+        await loadUsers();
+        setShowEditModal(false);
+        setSelectedUser(null);
+        resetForm();
+      } else {
+        showToast("Failed to update user", "error");
+      }
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      showToast(error.message || "Failed to update user", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!selectedUser) return;
 
     if (selectedUser.id === currentUser?.id) {
@@ -158,14 +213,23 @@ const UserManagement: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
-      authUtils.deleteUser(selectedUser.id);
-      showToast("User deleted successfully", "success");
-      loadUsers();
-      setShowDeleteConfirm(false);
-      setSelectedUser(null);
-    } catch (error) {
-      showToast("Failed to delete user", "error");
+      const success = await authUtils.deleteUser(selectedUser.id);
+
+      if (success) {
+        showToast("User deactivated successfully", "success");
+        await loadUsers();
+        setShowDeleteConfirm(false);
+        setSelectedUser(null);
+      } else {
+        showToast("Failed to delete user", "error");
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      showToast(error.message || "Failed to delete user", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -173,7 +237,7 @@ const UserManagement: React.FC = () => {
     setSelectedUser(user);
     setFormData({
       username: user.username,
-      password: "",
+      password: "", // Don't populate password for security
       fullName: user.fullName,
       email: user.email || "",
       role: user.role,
@@ -342,14 +406,17 @@ const UserManagement: React.FC = () => {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEditModal(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              disabled={isLoading}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
                               title="Edit user"
                             >
                               <Edit size={18} />
                             </button>
                             <button
                               onClick={() => openDeleteConfirm(user)}
-                              disabled={user.id === currentUser?.id}
+                              disabled={
+                                user.id === currentUser?.id || isLoading
+                              }
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title={
                                 user.id === currentUser?.id
@@ -386,6 +453,7 @@ const UserManagement: React.FC = () => {
             resetForm();
           }}
           isEdit={false}
+          isLoading={isLoading}
         />
       )}
 
@@ -405,6 +473,7 @@ const UserManagement: React.FC = () => {
             resetForm();
           }}
           isEdit={true}
+          isLoading={isLoading}
         />
       )}
 
@@ -417,15 +486,18 @@ const UserManagement: React.FC = () => {
                 <AlertCircle size={24} className="text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Delete User</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Deactivate User
+                </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  This action cannot be undone
+                  This will disable the user account
                 </p>
               </div>
             </div>
             <p className="text-gray-700 mb-6">
-              Are you sure you want to delete user{" "}
+              Are you sure you want to deactivate user{" "}
               <span className="font-semibold">{selectedUser.username}</span>?
+              They will no longer be able to log in.
             </p>
             <div className="flex gap-3">
               <button
@@ -433,15 +505,24 @@ const UserManagement: React.FC = () => {
                   setShowDeleteConfirm(false);
                   setSelectedUser(null);
                 }}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteUser}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Delete
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Deactivate"
+                )}
               </button>
             </div>
           </div>
@@ -471,6 +552,7 @@ const UserModal: React.FC<any> = ({
   onSave,
   onCancel,
   isEdit,
+  isLoading,
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 overflow-y-auto">
@@ -480,7 +562,8 @@ const UserModal: React.FC<any> = ({
           <h2 className="text-xl font-bold">{title}</h2>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            disabled={isLoading}
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
           >
             <X size={24} />
           </button>
@@ -499,7 +582,8 @@ const UserModal: React.FC<any> = ({
               onChange={(e) =>
                 onFormChange({ ...formData, username: e.target.value })
               }
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+              disabled={isLoading}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100 ${
                 errors.username ? "border-red-400" : "border-gray-300"
               }`}
               placeholder="Enter username"
@@ -509,13 +593,38 @@ const UserModal: React.FC<any> = ({
             )}
           </div>
 
+          {/* Email (REQUIRED for Firebase) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-1">
+                (Required for Firebase login)
+              </span>
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                onFormChange({ ...formData, email: e.target.value })
+              }
+              disabled={isLoading}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100 ${
+                errors.email ? "border-red-400" : "border-gray-300"
+              }`}
+              placeholder="user@example.com"
+            />
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+            )}
+          </div>
+
           {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password {!isEdit && <span className="text-red-500">*</span>}
               {isEdit && (
-                <span className="text-gray-500 text-xs ml-1">
-                  (Leave blank to keep current)
+                <span className="text-xs text-orange-600 ml-1">
+                  (Password updates not supported - user should reset via email)
                 </span>
               )}
             </label>
@@ -526,21 +635,32 @@ const UserModal: React.FC<any> = ({
                 onChange={(e) =>
                   onFormChange({ ...formData, password: e.target.value })
                 }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none pr-10 ${
+                disabled={isLoading || isEdit}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none pr-10 disabled:bg-gray-100 ${
                   errors.password ? "border-red-400" : "border-gray-300"
                 }`}
-                placeholder={isEdit ? "Enter new password" : "Enter password"}
+                placeholder={
+                  isEdit ? "Cannot change password here" : "Min. 6 characters"
+                }
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+              {!isEdit && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              )}
             </div>
             {errors.password && (
               <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+            )}
+            {!isEdit && (
+              <p className="text-xs text-gray-500 mt-1">
+                Must be at least 6 characters
+              </p>
             )}
           </div>
 
@@ -555,34 +675,14 @@ const UserModal: React.FC<any> = ({
               onChange={(e) =>
                 onFormChange({ ...formData, fullName: e.target.value })
               }
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+              disabled={isLoading}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100 ${
                 errors.fullName ? "border-red-400" : "border-gray-300"
               }`}
               placeholder="Enter full name"
             />
             {errors.fullName && (
               <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                onFormChange({ ...formData, email: e.target.value })
-              }
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
-                errors.email ? "border-red-400" : "border-gray-300"
-              }`}
-              placeholder="Enter email (optional)"
-            />
-            {errors.email && (
-              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
             )}
           </div>
 
@@ -599,28 +699,59 @@ const UserModal: React.FC<any> = ({
                   role: e.target.value as "admin" | "user",
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
             >
               <option value="user">User (Read & Edit)</option>
               <option value="admin">Administrator (Full Access)</option>
             </select>
           </div>
+
+          {/* Firebase Info Notice */}
+          {!isEdit && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex gap-2">
+                <AlertCircle
+                  size={16}
+                  className="text-blue-600 mt-0.5 flex-shrink-0"
+                />
+                <div className="text-xs text-blue-800">
+                  <p className="font-medium mb-1">Firebase Authentication</p>
+                  <p>
+                    User will be created in Firebase Auth and can log in using
+                    their email and password.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 rounded-b-xl flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+            disabled={isLoading}
+            className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onSave}
-            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium transition-colors"
+            disabled={isLoading}
+            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium transition-colors disabled:opacity-50"
           >
-            <Save size={18} />
-            {isEdit ? "Update" : "Add"} User
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                {isEdit ? "Update" : "Add"} User
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -631,18 +762,22 @@ const UserModal: React.FC<any> = ({
 // Toast Component
 const Toast: React.FC<any> = ({ message, type, onClose }) => {
   React.useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
+    const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${
+      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in ${
         type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
       }`}
     >
       {type === "success" ? (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <svg
+          className="w-5 h-5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -650,7 +785,11 @@ const Toast: React.FC<any> = ({ message, type, onClose }) => {
           />
         </svg>
       ) : (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <svg
+          className="w-5 h-5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -658,8 +797,8 @@ const Toast: React.FC<any> = ({ message, type, onClose }) => {
           />
         </svg>
       )}
-      <span className="text-sm font-medium">{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-80">
+      <span className="text-sm font-medium max-w-xs">{message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-80 flex-shrink-0">
         <X size={16} />
       </button>
     </div>

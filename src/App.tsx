@@ -1,4 +1,5 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom"; // ✅ Changed BrowserRouter to HashRouter
+//App.tsx
+import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom"; // ✅ Changed BrowserRouter to HashRouter
 import Sidebar from "./components/Sidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -36,7 +37,7 @@ function App() {
   return (
     <AuthProvider>
       <SidebarProvider>
-        <HashRouter>
+        <BrowserRouter>
           {" "}
           {/* ✅ Changed from BrowserRouter */}
           <Routes>
@@ -128,7 +129,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </HashRouter>{" "}
+        </BrowserRouter>{" "}
         {/* ✅ Changed from BrowserRouter */}
       </SidebarProvider>
     </AuthProvider>

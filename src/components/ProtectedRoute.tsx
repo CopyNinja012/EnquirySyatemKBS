@@ -1,31 +1,33 @@
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const ProtectedRoute = () => {
-  const { currentUser, isLoading } = useAuth();
+const ProtectedRoute: React.FC = () => {
+  const { isAuthenticated, isLoading, currentUser } = useAuth();
 
-  // Show loading spinner while checking auth
+  console.log("ProtectedRoute - isLoading:", isLoading);
+  console.log("ProtectedRoute - isAuthenticated:", isAuthenticated);
+  console.log("ProtectedRoute - currentUser:", currentUser);
+
+  // Show loading screen while checking auth
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Debug log
-  console.log("ProtectedRoute - currentUser:", currentUser);
-
-  // If not logged in, redirect to login
-  if (!currentUser) {
-    console.log("No user found, redirecting to login");
+  // Redirect to login if not authenticated
+  if (!isAuthenticated || !currentUser) {
+    console.log("❌ Not authenticated, redirecting to /login");
     return <Navigate to="/login" replace />;
   }
 
-  // Render child routes
+  console.log("✅ Authenticated, rendering protected content");
   return <Outlet />;
 };
 

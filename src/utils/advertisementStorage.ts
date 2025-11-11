@@ -1,4 +1,4 @@
-import { db } from './database';
+import { firestoreDB } from './database';
 
 export interface AdvertisementEnquiry {
   id: string;
@@ -14,21 +14,23 @@ export interface AdvertisementEnquiry {
 export const advertisementStorage = {
   getAllAdvertisementEnquiries: async (): Promise<AdvertisementEnquiry[]> => {
     try {
-      return await db.advertisements.getAll();
+      const data = await firestoreDB.advertisements.getAll();
+      return data as AdvertisementEnquiry[];
     } catch (error) {
       console.error("Error loading advertisement enquiries:", error);
       return [];
     }
   },
 
-  addAdvertisementEnquiry: async (enquiry: Omit<AdvertisementEnquiry, "id" | "importedAt">): Promise<boolean> => {
+  addAdvertisementEnquiry: async (
+    enquiry: Omit<AdvertisementEnquiry, "id" | "importedAt">
+  ): Promise<boolean> => {
     try {
-      const newEnquiry: AdvertisementEnquiry = {
+      const newEnquiry = {
         ...enquiry,
-        id: `ADV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         importedAt: new Date().toISOString(),
       };
-      const result = await db.advertisements.add(newEnquiry);
+      const result = await firestoreDB.advertisements.add(newEnquiry);
       return result.success;
     } catch (error) {
       console.error("Error adding advertisement enquiry:", error);
@@ -41,8 +43,8 @@ export const advertisementStorage = {
     importedBy?: string
   ): Promise<{ success: number; failed: number; errors: string[] }> => {
     const result = { success: 0, failed: 0, errors: [] as string[] };
-    const existingEnquiries = await db.advertisements.getAll();
-    const newEnquiries: AdvertisementEnquiry[] = [];
+    const existingEnquiries = await firestoreDB.advertisements.getAll();
+    const newEnquiries: any[] = [];
 
     enquiries.forEach((enquiry, index) => {
       try {
@@ -62,7 +64,7 @@ export const advertisementStorage = {
         }
 
         const isDuplicate = existingEnquiries.some(
-          (e: AdvertisementEnquiry) => e.phoneNo === normalizedEnquiry.phoneNo
+          (e: any) => e.phoneNo === normalizedEnquiry.phoneNo
         ) || newEnquiries.some((e) => e.phoneNo === normalizedEnquiry.phoneNo);
 
         if (isDuplicate) {
@@ -73,7 +75,6 @@ export const advertisementStorage = {
 
         newEnquiries.push({
           ...normalizedEnquiry,
-          id: `ADV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           importedAt: new Date().toISOString(),
           importedBy,
         });
@@ -86,7 +87,7 @@ export const advertisementStorage = {
 
     try {
       if (newEnquiries.length > 0) {
-        await db.advertisements.bulkAdd(newEnquiries);
+        await firestoreDB.advertisements.bulkAdd(newEnquiries);
       }
     } catch (error) {
       console.error("Error saving bulk enquiries:", error);
@@ -101,20 +102,15 @@ export const advertisementStorage = {
     updates: Partial<AdvertisementEnquiry>
   ): Promise<boolean> => {
     try {
-      const normalizedUpdates = {
-        name: updates.name ? String(updates.name).trim() : undefined,
-        phoneNo: updates.phoneNo ? String(updates.phoneNo).replace(/\D/g, "") : undefined,
-        email: updates.email ? String(updates.email).trim() : undefined,
-        aadharNo: updates.aadharNo ? String(updates.aadharNo).replace(/\D/g, "") : undefined,
-        panNo: updates.panNo ? String(updates.panNo).trim().toUpperCase() : undefined,
-      };
+      const normalizedUpdates: any = {};
+      
+      if (updates.name) normalizedUpdates.name = String(updates.name).trim();
+      if (updates.phoneNo) normalizedUpdates.phoneNo = String(updates.phoneNo).replace(/\D/g, "");
+      if (updates.email) normalizedUpdates.email = String(updates.email).trim();
+      if (updates.aadharNo) normalizedUpdates.aadharNo = String(updates.aadharNo).replace(/\D/g, "");
+      if (updates.panNo) normalizedUpdates.panNo = String(updates.panNo).trim().toUpperCase();
 
-      // Remove undefined values
-      Object.keys(normalizedUpdates).forEach(
-        key => normalizedUpdates[key as keyof typeof normalizedUpdates] === undefined && delete normalizedUpdates[key as keyof typeof normalizedUpdates]
-      );
-
-      const result = await db.advertisements.update(id, normalizedUpdates);
+      const result = await firestoreDB.advertisements.update(id, normalizedUpdates);
       return result.success;
     } catch (error) {
       console.error("Error updating advertisement enquiry:", error);
@@ -124,7 +120,7 @@ export const advertisementStorage = {
 
   deleteAdvertisementEnquiry: async (id: string): Promise<boolean> => {
     try {
-      const result = await db.advertisements.delete(id);
+      const result = await firestoreDB.advertisements.delete(id);
       return result.success;
     } catch (error) {
       console.error("Error deleting advertisement enquiry:", error);
@@ -193,16 +189,16 @@ export const advertisementStorage = {
 
   downloadCSV: async () => {
     try {
-      const enquiries = await db.advertisements.getAll();
+      const enquiries = await firestoreDB.advertisements.getAll();
       const headers = ["ID", "Name", "Phone No", "Email", "Aadhar No", "PAN No", "Imported At"];
-      const rows = enquiries.map((e: AdvertisementEnquiry) => [
+      const rows = enquiries.map((e: any) => [
         e.id,
         e.name,
         e.phoneNo,
         e.email,
         e.aadharNo || "",
         e.panNo || "",
-        new Date(e.importedAt).toLocaleString(),
+        e.importedAt || new Date().toISOString(),
       ]);
 
       const csvContent = [
@@ -230,19 +226,19 @@ export const advertisementStorage = {
 
   getStatistics: async () => {
     try {
-      const enquiries = await db.advertisements.getAll();
+      const enquiries = await firestoreDB.advertisements.getAll();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       return {
         total: enquiries.length,
-        todayImported: enquiries.filter((e: AdvertisementEnquiry) => {
+        todayImported: enquiries.filter((e: any) => {
           const importDate = new Date(e.importedAt);
           importDate.setHours(0, 0, 0, 0);
           return importDate.getTime() === today.getTime();
         }).length,
-        withAadhar: enquiries.filter((e: AdvertisementEnquiry) => e.aadharNo && e.aadharNo.length > 0).length,
-        withPAN: enquiries.filter((e: AdvertisementEnquiry) => e.panNo && e.panNo.length > 0).length,
+        withAadhar: enquiries.filter((e: any) => e.aadharNo && e.aadharNo.length > 0).length,
+        withPAN: enquiries.filter((e: any) => e.panNo && e.panNo.length > 0).length,
       };
     } catch (error) {
       return {

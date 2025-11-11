@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./animation.css";
 import "react-datepicker/dist/react-datepicker.css";
-import { storageUtils, type EnquiryData } from "../utils/localStorage";
+import { storageUtils, type EnquiryData } from "../utils/storageUtils";
 
 // Types
 interface FormData {
@@ -126,7 +126,7 @@ const ValidationHelpers = {
     return "";
   },
 
-  // Validate Demat Account
+  // ✅ Updated Validate Demat Account (min 8, max 16)
   validateDematAccount: (
     account: string,
     isRequired: boolean = true
@@ -134,8 +134,8 @@ const ValidationHelpers = {
     if (!account.trim()) {
       return isRequired ? "Demat account ID is required" : "";
     }
-    if (account.trim().length < 16) {
-      return "Demat account ID must be at least 16 characters";
+    if (account.trim().length < 8) {
+      return "Demat account ID must be at least 8 characters";
     }
     if (account.trim().length > 16) {
       return "Demat account ID must not exceed 16 characters";
@@ -146,11 +146,11 @@ const ValidationHelpers = {
     return "";
   },
 
-  // Validate Date
+  // ✅ Updated Validate Date (allow today or future for Deposit Inward)
   validateDate: (
     date: string,
     fieldName: string,
-    isFutureAllowed: boolean = true
+    allowPast: boolean = false
   ): string => {
     if (!date) {
       return `${fieldName} is required`;
@@ -158,12 +158,15 @@ const ValidationHelpers = {
     const selectedDate = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
     if (isNaN(selectedDate.getTime())) {
       return `Invalid ${fieldName.toLowerCase()}`;
     }
-    if (!isFutureAllowed && selectedDate < today) {
+
+    if (!allowPast && selectedDate < today) {
       return `${fieldName} cannot be in the past`;
     }
+
     const twoYearsFromNow = new Date();
     twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
     if (selectedDate > twoYearsFromNow) {
@@ -186,6 +189,7 @@ const Field: React.FC<{
   error?: string;
   icon?: React.ReactNode;
   maxLength?: number;
+  minLength?: number;
   pattern?: string;
 }> = ({
   label,
@@ -199,6 +203,7 @@ const Field: React.FC<{
   error,
   icon,
   maxLength,
+  minLength,
   pattern,
 }) => {
   const isDuplicate = error?.includes("⚠️");
@@ -227,6 +232,7 @@ const Field: React.FC<{
           onBlur={onBlur}
           placeholder={placeholder}
           maxLength={maxLength}
+          minLength={minLength}
           pattern={pattern}
           className={`w-full h-11 border rounded-lg px-3 ${
             icon ? "pl-10" : ""
@@ -615,18 +621,6 @@ const DuplicateWarningModal: React.FC<{
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Aadhar:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.aadharNumber}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">PAN:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.panNumber}
-              </span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-600">Status:</span>
               <span className="font-medium text-gray-900">
                 {existingEnquiry.status}
@@ -643,9 +637,9 @@ const DuplicateWarningModal: React.FC<{
 
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-xs text-red-700">
-            <strong>Important:</strong> Each Aadhar and PAN number must be
-            unique. Please verify the information or update the existing enquiry
-            instead of creating a new one.
+            <strong>Important:</strong> Each mobile, email, Aadhar and PAN
+            number must be unique. Please verify the information or update the
+            existing enquiry instead of creating a new one.
           </p>
         </div>
 
@@ -707,6 +701,9 @@ const AddEnquiry: React.FC = () => {
     inProcess: 0,
   });
 
+  // ✅ Check if status is "Confirmed" to show additional fields
+  const isConfirmed = formData.status === "Confirmed";
+
   // Load statistics on component mount
   useEffect(() => {
     const loadStats = async () => {
@@ -749,7 +746,7 @@ const AddEnquiry: React.FC = () => {
       formattedValue = value
         .toUpperCase()
         .replace(/[^A-Z0-9]/g, "")
-        .slice(0, 20);
+        .slice(0, 16);
     }
     setFormData((prev) => ({ ...prev, [field]: formattedValue }));
     if (errors[field]) {
@@ -801,38 +798,44 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "aadharNumber":
-        error = ValidationHelpers.validateAadhar(value);
-        if (!error && (await storageUtils.isAadharExists(value))) {
-          error = "⚠️ This Aadhar number is already registered";
-          const existing = await storageUtils.getExistingEnquiry(value);
-          if (existing) {
-            setDuplicateEnquiry(existing);
-            setDuplicateField("Aadhar");
+        if (isConfirmed) {
+          error = ValidationHelpers.validateAadhar(value);
+          if (!error && (await storageUtils.isAadharExists(value))) {
+            error = "⚠️ This Aadhar number is already registered";
+            const existing = await storageUtils.getExistingEnquiry(value);
+            if (existing) {
+              setDuplicateEnquiry(existing);
+              setDuplicateField("Aadhar");
+            }
           }
         }
         break;
 
       case "panNumber":
-        error = ValidationHelpers.validatePAN(value);
-        if (!error && (await storageUtils.isPANExists(value))) {
-          error = "⚠️ This PAN number is already registered";
-          const existing = await storageUtils.getExistingEnquiry(
-            undefined,
-            value
-          );
-          if (existing) {
-            setDuplicateEnquiry(existing);
-            setDuplicateField("PAN");
+        if (isConfirmed) {
+          error = ValidationHelpers.validatePAN(value);
+          if (!error && (await storageUtils.isPANExists(value))) {
+            error = "⚠️ This PAN number is already registered";
+            const existing = await storageUtils.getExistingEnquiry(
+              undefined,
+              value
+            );
+            if (existing) {
+              setDuplicateEnquiry(existing);
+              setDuplicateField("PAN");
+            }
           }
         }
         break;
 
       case "demateAccount1":
-        error = ValidationHelpers.validateDematAccount(value, true);
+        if (isConfirmed) {
+          error = ValidationHelpers.validateDematAccount(value, true);
+        }
         break;
 
       case "demateAccount2":
-        if (value) {
+        if (isConfirmed && value) {
           error = ValidationHelpers.validateDematAccount(value, false);
           if (!error && value === formData.demateAccount1) {
             error = "Demat Account 2 cannot be same as Demat Account 1";
@@ -841,20 +844,33 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "callBackDate":
-        error = ValidationHelpers.validateDate(value, "Call back date");
+        error = ValidationHelpers.validateDate(value, "Call back date", true);
         break;
 
       case "depositInwardDate":
-        error = ValidationHelpers.validateDate(value, "Deposit inward date");
+        if (isConfirmed) {
+          // ✅ Allow only today or future dates
+          error = ValidationHelpers.validateDate(
+            value,
+            "Deposit inward date",
+            false
+          );
+        }
         break;
 
       case "depositOutwardDate":
-        error = ValidationHelpers.validateDate(value, "Deposit outward date");
-        if (!error && formData.depositInwardDate) {
-          const inward = new Date(formData.depositInwardDate);
-          const outward = new Date(value);
-          if (outward < inward) {
-            error = "Deposit outward date cannot be before inward date";
+        if (isConfirmed) {
+          error = ValidationHelpers.validateDate(
+            value,
+            "Deposit outward date",
+            false
+          );
+          if (!error && formData.depositInwardDate) {
+            const inward = new Date(formData.depositInwardDate);
+            const outward = new Date(value);
+            if (outward < inward) {
+              error = "Deposit outward date cannot be before inward date";
+            }
           }
         }
         break;
@@ -864,7 +880,7 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "sourceOfEnquiry":
-        if (!value) error = "Please select source of enquiry";
+        if (isConfirmed && !value) error = "Please select source of enquiry";
         break;
 
       case "interestedStatus":
@@ -876,25 +892,29 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "profession":
-        if (!value) error = "Please select profession";
+        if (isConfirmed && !value) error = "Please select profession";
         break;
 
       case "knowledgeOfShareMarket":
-        if (!value) error = "Please select knowledge level";
+        if (isConfirmed && !value) error = "Please select knowledge level";
         break;
 
       case "howDidYouKnow":
-        if (!value) error = "Please select an option";
+        if (isConfirmed && !value) error = "Please select an option";
         break;
 
       case "customHowDidYouKnow":
-        if (formData.howDidYouKnow === "Other" && !value.trim()) {
+        if (
+          isConfirmed &&
+          formData.howDidYouKnow === "Other" &&
+          !value.trim()
+        ) {
           error = "Please specify how you knew about us";
         }
         break;
 
       case "customProfession":
-        if (formData.profession === "Other" && !value.trim()) {
+        if (isConfirmed && formData.profession === "Other" && !value.trim()) {
           error = "Please specify your profession";
         }
         break;
@@ -915,47 +935,67 @@ const AddEnquiry: React.FC = () => {
   // Validation
   const validate = async (): Promise<boolean> => {
     const newErrors: FormErrors = {};
-    const fieldsToValidate: (keyof FormData)[] = [
+
+    // ✅ Always required fields
+    const alwaysRequiredFields: (keyof FormData)[] = [
       "fullName",
       "mobile",
       "email",
       "address",
+      "enquiryState",
+      "interestedStatus",
+      "status",
+      "callBackDate",
+    ];
+
+    // ✅ Fields required only when status is "Confirmed"
+    const confirmedRequiredFields: (keyof FormData)[] = [
       "aadharNumber",
       "panNumber",
       "demateAccount1",
-      "enquiryState",
       "sourceOfEnquiry",
-      "interestedStatus",
-      "status",
       "profession",
       "knowledgeOfShareMarket",
       "howDidYouKnow",
-      "callBackDate",
       "depositInwardDate",
       "depositOutwardDate",
     ];
 
-    for (const field of fieldsToValidate) {
+    // Validate always required fields
+    for (const field of alwaysRequiredFields) {
       const error = await validateField(field);
       if (error) {
         newErrors[field] = error;
       }
     }
 
+    // Validate confirmed-only fields if status is "Confirmed"
+    if (isConfirmed) {
+      for (const field of confirmedRequiredFields) {
+        const error = await validateField(field);
+        if (error) {
+          newErrors[field] = error;
+        }
+      }
+    }
+
+    // Validate optional fields if they have values
     if (formData.alternateMobile) {
       const error = await validateField("alternateMobile");
       if (error) newErrors.alternateMobile = error;
     }
-    if (formData.demateAccount2) {
+
+    if (isConfirmed && formData.demateAccount2) {
       const error = await validateField("demateAccount2");
       if (error) newErrors.demateAccount2 = error;
     }
 
-    if (formData.howDidYouKnow === "Other") {
+    if (isConfirmed && formData.howDidYouKnow === "Other") {
       const error = await validateField("customHowDidYouKnow");
       if (error) newErrors.customHowDidYouKnow = error;
     }
-    if (formData.profession === "Other") {
+
+    if (isConfirmed && formData.profession === "Other") {
       const error = await validateField("customProfession");
       if (error) newErrors.customProfession = error;
     }
@@ -1283,16 +1323,17 @@ const AddEnquiry: React.FC = () => {
         >
           <div className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Column - Contact Information */}
+              {/* Left Column - Basic Information (Always Visible) */}
               <div className="space-y-5">
                 <div className="flex items-center gap-2 pb-3 border-b-2 border-green-500">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <UserIcon />
                   </div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Contact Information
+                    Basic Information
                   </h2>
                 </div>
+
                 <Field
                   label="Full Name"
                   name="fullName"
@@ -1305,6 +1346,7 @@ const AddEnquiry: React.FC = () => {
                   icon={<UserIcon />}
                   maxLength={100}
                 />
+
                 <Field
                   label="Mobile Number"
                   name="mobile"
@@ -1318,6 +1360,7 @@ const AddEnquiry: React.FC = () => {
                   icon={<PhoneIcon />}
                   maxLength={10}
                 />
+
                 <Field
                   label="Alternate Mobile Number"
                   name="alternateMobile"
@@ -1330,6 +1373,7 @@ const AddEnquiry: React.FC = () => {
                   icon={<PhoneIcon />}
                   maxLength={10}
                 />
+
                 <Field
                   label="Email Address"
                   name="email"
@@ -1343,6 +1387,7 @@ const AddEnquiry: React.FC = () => {
                   icon={<EmailIcon />}
                   maxLength={100}
                 />
+
                 <TextAreaField
                   label="Address"
                   name="address"
@@ -1354,53 +1399,83 @@ const AddEnquiry: React.FC = () => {
                   required
                   rows={3}
                 />
-                <Field
-                  label="Aadhar Number"
-                  name="aadharNumber"
-                  value={formData.aadharNumber}
-                  onChange={(value) => handleChange("aadharNumber", value)}
-                  onBlur={() => handleBlur("aadharNumber")}
-                  placeholder="XXXX XXXX XXXX"
-                  required
-                  error={touched.aadharNumber ? errors.aadharNumber : ""}
-                  icon={<CardIcon />}
-                  maxLength={14}
-                />
-                <Field
-                  label="PAN Number"
-                  name="panNumber"
-                  value={formData.panNumber}
-                  onChange={(value) => handleChange("panNumber", value)}
-                  onBlur={() => handleBlur("panNumber")}
-                  placeholder="ABCDE1234F"
-                  error={touched.panNumber ? errors.panNumber : ""}
-                  icon={<CardIcon />}
-                  maxLength={10}
-                  required
-                />
-                <Field
-                  label="Demat Account ID 1"
-                  name="demateAccount1"
-                  value={formData.demateAccount1}
-                  onChange={(value) => handleChange("demateAccount1", value)}
-                  onBlur={() => handleBlur("demateAccount1")}
-                  placeholder="Enter account ID"
-                  required
-                  error={touched.demateAccount1 ? errors.demateAccount1 : ""}
-                  icon={<ClipboardIcon />}
-                  maxLength={16}
-                />
-                <Field
-                  label="Demat Account ID 2"
-                  name="demateAccount2"
-                  value={formData.demateAccount2}
-                  onChange={(value) => handleChange("demateAccount2", value)}
-                  onBlur={() => handleBlur("demateAccount2")}
-                  placeholder="Enter account ID (optional)"
-                  error={touched.demateAccount2 ? errors.demateAccount2 : ""}
-                  icon={<ClipboardIcon />}
-                  maxLength={16}
-                />
+
+                {/* ✅ Additional fields shown only when Confirmed */}
+                {isConfirmed && (
+                  <>
+                    <div className="pt-4 border-t-2 border-gray-200">
+                      <div className="flex items-center gap-2 pb-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <CardIcon />
+                        </div>
+                        <h3 className="text-md font-semibold text-gray-900">
+                          Document Details
+                        </h3>
+                      </div>
+                    </div>
+
+                    <Field
+                      label="Aadhar Number"
+                      name="aadharNumber"
+                      value={formData.aadharNumber}
+                      onChange={(value) => handleChange("aadharNumber", value)}
+                      onBlur={() => handleBlur("aadharNumber")}
+                      placeholder="XXXX XXXX XXXX"
+                      required
+                      error={touched.aadharNumber ? errors.aadharNumber : ""}
+                      icon={<CardIcon />}
+                      maxLength={14}
+                    />
+
+                    <Field
+                      label="PAN Number"
+                      name="panNumber"
+                      value={formData.panNumber}
+                      onChange={(value) => handleChange("panNumber", value)}
+                      onBlur={() => handleBlur("panNumber")}
+                      placeholder="ABCDE1234F"
+                      error={touched.panNumber ? errors.panNumber : ""}
+                      icon={<CardIcon />}
+                      maxLength={10}
+                      required
+                    />
+
+                    <Field
+                      label="Demat Account ID 1"
+                      name="demateAccount1"
+                      value={formData.demateAccount1}
+                      onChange={(value) =>
+                        handleChange("demateAccount1", value)
+                      }
+                      onBlur={() => handleBlur("demateAccount1")}
+                      placeholder="8-16 characters"
+                      required
+                      error={
+                        touched.demateAccount1 ? errors.demateAccount1 : ""
+                      }
+                      icon={<ClipboardIcon />}
+                      maxLength={16}
+                      minLength={8}
+                    />
+
+                    <Field
+                      label="Demat Account ID 2"
+                      name="demateAccount2"
+                      value={formData.demateAccount2}
+                      onChange={(value) =>
+                        handleChange("demateAccount2", value)
+                      }
+                      onBlur={() => handleBlur("demateAccount2")}
+                      placeholder="8-16 characters (optional)"
+                      error={
+                        touched.demateAccount2 ? errors.demateAccount2 : ""
+                      }
+                      icon={<ClipboardIcon />}
+                      maxLength={16}
+                      minLength={8}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Right Column - Enquiry Details */}
@@ -1413,6 +1488,7 @@ const AddEnquiry: React.FC = () => {
                     Enquiry Details
                   </h2>
                 </div>
+
                 <DropdownField
                   label="Select Enquiry State"
                   name="enquiryState"
@@ -1460,23 +1536,7 @@ const AddEnquiry: React.FC = () => {
                   error={touched.enquiryState ? errors.enquiryState : ""}
                   icon={<ClipboardIcon />}
                 />
-                <DropdownField
-                  label="Source of Enquiry"
-                  name="sourceOfEnquiry"
-                  value={formData.sourceOfEnquiry}
-                  onChange={(value) => handleChange("sourceOfEnquiry", value)}
-                  options={[
-                    "Phone Call",
-                    "Walk-in",
-                    "Referral",
-                    "Social Media",
-                    "Email",
-                    "Advertisement",
-                  ]}
-                  required
-                  error={touched.sourceOfEnquiry ? errors.sourceOfEnquiry : ""}
-                  icon={<ClipboardIcon />}
-                />
+
                 <DropdownField
                   label="Interested Status"
                   name="interestedStatus"
@@ -1495,6 +1555,7 @@ const AddEnquiry: React.FC = () => {
                   }
                   icon={<ClipboardIcon />}
                 />
+
                 <DropdownField
                   label="Status"
                   name="status"
@@ -1505,108 +1566,7 @@ const AddEnquiry: React.FC = () => {
                   error={touched.status ? errors.status : ""}
                   icon={<StatusIcon />}
                 />
-                <DropdownField
-                  label="Profession"
-                  name="profession"
-                  value={formData.profession}
-                  onChange={(value) => {
-                    handleChange("profession", value);
-                    if (value !== "Other") {
-                      handleChange("customProfession", "");
-                    }
-                  }}
-                  options={[
-                    "Farmer",
-                    "Business",
-                    "Traider",
-                    "Self-Employed",
-                    "Student",
-                    "Other",
-                  ]}
-                  required={true}
-                  error={touched.profession ? errors.profession : ""}
-                  icon={<BriefcaseIcon />}
-                />
-                {formData.profession === "Other" && (
-                  <Field
-                    label="Specify Profession"
-                    name="customProfession"
-                    value={formData.customProfession}
-                    onChange={(value) =>
-                      handleChange("customProfession", value)
-                    }
-                    onBlur={() => handleBlur("customProfession")}
-                    required
-                    placeholder="Enter your profession"
-                    error={
-                      touched.customProfession ? errors.customProfession : ""
-                    }
-                    icon={<BriefcaseIcon />}
-                  />
-                )}
-                <DropdownField
-                  label="Knowledge of Share Market"
-                  name="knowledgeOfShareMarket"
-                  value={formData.knowledgeOfShareMarket}
-                  onChange={(value) =>
-                    handleChange("knowledgeOfShareMarket", value)
-                  }
-                  options={[
-                    "Fresher",
-                    "Intermediate",
-                    "Advanced",
-                    "Professional",
-                  ]}
-                  required={true}
-                  error={
-                    touched.knowledgeOfShareMarket
-                      ? errors.knowledgeOfShareMarket
-                      : ""
-                  }
-                  icon={<BookIcon />}
-                />
-                <DropdownField
-                  label="How did you know about us?"
-                  name="howDidYouKnow"
-                  value={formData.howDidYouKnow}
-                  onChange={(value) => {
-                    handleChange("howDidYouKnow", value);
-                    if (value !== "Other") {
-                      handleChange("customHowDidYouKnow", "");
-                    }
-                  }}
-                  options={[
-                    "Google Search",
-                    "Facebook",
-                    "Instagram",
-                    "LinkedIn",
-                    "Friend/Family",
-                    "Advertisement",
-                    "Other",
-                  ]}
-                  required
-                  error={touched.howDidYouKnow ? errors.howDidYouKnow : ""}
-                  icon={<ClipboardIcon />}
-                />
-                {formData.howDidYouKnow === "Other" && (
-                  <Field
-                    label="Specify Source"
-                    name="customHowDidYouKnow"
-                    value={formData.customHowDidYouKnow}
-                    onChange={(value) =>
-                      handleChange("customHowDidYouKnow", value)
-                    }
-                    onBlur={() => handleBlur("customHowDidYouKnow")}
-                    required
-                    placeholder="Enter how you knew about us"
-                    error={
-                      touched.customHowDidYouKnow
-                        ? errors.customHowDidYouKnow
-                        : ""
-                    }
-                    icon={<ClipboardIcon />}
-                  />
-                )}
+
                 <DateField
                   label="Call Back Date"
                   name="callBackDate"
@@ -1617,34 +1577,191 @@ const AddEnquiry: React.FC = () => {
                   icon={<CalendarIcon />}
                   min={today}
                 />
-                <DateField
-                  label="Deposit Inward Date"
-                  name="depositInwardDate"
-                  value={formData.depositInwardDate}
-                  required
-                  onChange={(value) => handleChange("depositInwardDate", value)}
-                  error={
-                    touched.depositInwardDate ? errors.depositInwardDate : ""
-                  }
-                  icon={<CalendarIcon />}
-                />
-                <DateField
-                  label="Deposit Outward Date"
-                  name="depositOutwardDate"
-                  value={formData.depositOutwardDate}
-                  onChange={(value) =>
-                    handleChange("depositOutwardDate", value)
-                  }
-                  error={
-                    touched.depositOutwardDate ? errors.depositOutwardDate : ""
-                  }
-                  required
-                  icon={<CalendarIcon />}
-                  min={formData.depositInwardDate || today}
-                />
+
+                {/* ✅ Additional fields shown only when Confirmed */}
+                {isConfirmed && (
+                  <>
+                    <div className="pt-4 border-t-2 border-gray-200">
+                      <div className="flex items-center gap-2 pb-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <BriefcaseIcon />
+                        </div>
+                        <h3 className="text-md font-semibold text-gray-900">
+                          Additional Information
+                        </h3>
+                      </div>
+                    </div>
+
+                    <DropdownField
+                      label="Source of Enquiry"
+                      name="sourceOfEnquiry"
+                      value={formData.sourceOfEnquiry}
+                      onChange={(value) =>
+                        handleChange("sourceOfEnquiry", value)
+                      }
+                      options={[
+                        "Phone Call",
+                        "Walk-in",
+                        "Referral",
+                        "Social Media",
+                        "Email",
+                        "Advertisement",
+                      ]}
+                      required
+                      error={
+                        touched.sourceOfEnquiry ? errors.sourceOfEnquiry : ""
+                      }
+                      icon={<ClipboardIcon />}
+                    />
+
+                    <DropdownField
+                      label="Profession"
+                      name="profession"
+                      value={formData.profession}
+                      onChange={(value) => {
+                        handleChange("profession", value);
+                        if (value !== "Other") {
+                          handleChange("customProfession", "");
+                        }
+                      }}
+                      options={[
+                        "Farmer",
+                        "Business",
+                        "Traider",
+                        "Self-Employed",
+                        "Student",
+                        "Other",
+                      ]}
+                      required={true}
+                      error={touched.profession ? errors.profession : ""}
+                      icon={<BriefcaseIcon />}
+                    />
+
+                    {formData.profession === "Other" && (
+                      <Field
+                        label="Specify Profession"
+                        name="customProfession"
+                        value={formData.customProfession}
+                        onChange={(value) =>
+                          handleChange("customProfession", value)
+                        }
+                        onBlur={() => handleBlur("customProfession")}
+                        required
+                        placeholder="Enter your profession"
+                        error={
+                          touched.customProfession
+                            ? errors.customProfession
+                            : ""
+                        }
+                        icon={<BriefcaseIcon />}
+                      />
+                    )}
+
+                    <DropdownField
+                      label="Knowledge of Share Market"
+                      name="knowledgeOfShareMarket"
+                      value={formData.knowledgeOfShareMarket}
+                      onChange={(value) =>
+                        handleChange("knowledgeOfShareMarket", value)
+                      }
+                      options={[
+                        "Fresher",
+                        "Intermediate",
+                        "Advanced",
+                        "Professional",
+                      ]}
+                      required={true}
+                      error={
+                        touched.knowledgeOfShareMarket
+                          ? errors.knowledgeOfShareMarket
+                          : ""
+                      }
+                      icon={<BookIcon />}
+                    />
+
+                    <DropdownField
+                      label="How did you know about us?"
+                      name="howDidYouKnow"
+                      value={formData.howDidYouKnow}
+                      onChange={(value) => {
+                        handleChange("howDidYouKnow", value);
+                        if (value !== "Other") {
+                          handleChange("customHowDidYouKnow", "");
+                        }
+                      }}
+                      options={[
+                        "Google Search",
+                        "Facebook",
+                        "Instagram",
+                        "LinkedIn",
+                        "Friend/Family",
+                        "Advertisement",
+                        "Other",
+                      ]}
+                      required
+                      error={touched.howDidYouKnow ? errors.howDidYouKnow : ""}
+                      icon={<ClipboardIcon />}
+                    />
+
+                    {formData.howDidYouKnow === "Other" && (
+                      <Field
+                        label="Specify Source"
+                        name="customHowDidYouKnow"
+                        value={formData.customHowDidYouKnow}
+                        onChange={(value) =>
+                          handleChange("customHowDidYouKnow", value)
+                        }
+                        onBlur={() => handleBlur("customHowDidYouKnow")}
+                        required
+                        placeholder="Enter how you knew about us"
+                        error={
+                          touched.customHowDidYouKnow
+                            ? errors.customHowDidYouKnow
+                            : ""
+                        }
+                        icon={<ClipboardIcon />}
+                      />
+                    )}
+
+                    <DateField
+                      label="Deposit Inward Date"
+                      name="depositInwardDate"
+                      value={formData.depositInwardDate}
+                      required
+                      onChange={(value) =>
+                        handleChange("depositInwardDate", value)
+                      }
+                      error={
+                        touched.depositInwardDate
+                          ? errors.depositInwardDate
+                          : ""
+                      }
+                      icon={<CalendarIcon />}
+                      min={today}
+                    />
+
+                    <DateField
+                      label="Deposit Outward Date"
+                      name="depositOutwardDate"
+                      value={formData.depositOutwardDate}
+                      onChange={(value) =>
+                        handleChange("depositOutwardDate", value)
+                      }
+                      error={
+                        touched.depositOutwardDate
+                          ? errors.depositOutwardDate
+                          : ""
+                      }
+                      required
+                      icon={<CalendarIcon />}
+                      min={formData.depositInwardDate || today}
+                    />
+                  </>
+                )}
               </div>
             </div>
 
+            {/* Info Box */}
             <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex gap-3">
                 <svg
@@ -1663,12 +1780,20 @@ const AddEnquiry: React.FC = () => {
                     Important Note
                   </h4>
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    All data is validated and stored securely. Fields marked
-                    with * are mandatory.{" "}
-                    <strong>
-                      Aadhar, PAN, mobile number, and email must be unique
-                    </strong>{" "}
-                    and cannot be duplicated.
+                    {isConfirmed ? (
+                      <>
+                        All fields are now visible as status is{" "}
+                        <strong>Confirmed</strong>. Please fill in all required
+                        details including document information and deposit
+                        dates.
+                      </>
+                    ) : (
+                      <>
+                        Basic information is required. Select status as{" "}
+                        <strong>Confirmed</strong> to access additional fields
+                        like Aadhar, PAN, Demat accounts, and deposit dates.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>

@@ -21,7 +21,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { storageUtils, type EnquiryData } from "../utils/localStorage";
-import { useAuth, authUtils } from "../contexts/AuthContext";
+import { authUtils, useAuth,} from "../contexts/AuthContext";
 
 const Dashboard: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
@@ -121,12 +121,12 @@ const Dashboard: React.FC = () => {
       if (isAdmin()) {
         // ✅ Await ONCE and store the result
         const allUsers = await authUtils.getAllUsers();
-        const activeUsers = allUsers.filter((u) => u.isActive);
+        const activeUsers = allUsers.filter((u: { isActive: any; }) => u.isActive);
 
         setUserStats({
           totalUsers: activeUsers.length,
-          adminUsers: activeUsers.filter((u) => u.role === "admin").length,
-          regularUsers: activeUsers.filter((u) => u.role === "user").length,
+          adminUsers: activeUsers.filter((u: { role: string; }) => u.role === "admin").length,
+          regularUsers: activeUsers.filter((u: { role: string; }) => u.role === "user").length,
         });
       }
 
