@@ -8,9 +8,6 @@ import {
   Eye,
   Users,
   LogOut,
-
-  //Menu,
-  
   X,
   ChevronDown,
   Shield,
@@ -41,8 +38,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const isAdmin = currentUser?.role === "admin";
-  const perms = currentUser?.permissions || {};
-
+const perms: Record<string, boolean> = (() => {
+  const permissions = currentUser?.permissions;
+  if (!permissions) return {};
+  if (Array.isArray(permissions)) {
+    // Convert array to object: ["addEnquiry", "viewEnquiry"] => {addEnquiry: true, viewEnquiry: true}
+    return permissions.reduce((acc, perm) => ({ ...acc, [perm]: true }), {});
+  }
+  return permissions as Record<string, boolean>;
+})();
   // Define navigation structure with required permissions
   const menuItems = [
     {
@@ -105,10 +109,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: "User Management",
       adminOnly: true,
     },
-     {
+    {
       path: "/payment-details",
       icon: <Users size={20} />,
-      label: "User Management",
+      label: "Payment Details",
       adminOnly: true,
     },
   ];
