@@ -1,6 +1,6 @@
-//App.tsx
-import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom"; // ✅ Changed BrowserRouter to HashRouter
+import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AddEnquiry from "./pages/AddEnquiry";
@@ -8,14 +8,23 @@ import ViewEnquiry from "./pages/ViewEnquiry";
 import SearchEnquiry from "./pages/SearchEnquiry";
 import TodayFollowUps from "./pages/TodaysFollowUps";
 import AllFollowUps from "./pages/AllFollowUps";
-import UserManagement from "./pages/UserManagement";
 import ImportAdvertisement from "./pages/ImportAdvertisement";
 import AdvertisementEnquiries from "./pages/AdvertisementEnquiries";
 import SearchAdvertisementEnquiry from "./pages/SearchAdvertisementEnquiry";
+import AdminProfile from "./pages/AdminProfile";
+import UserManagement from "./pages/UserManagement";
+import Unauthorized from "./pages/Unauthorized";
+import PaymentDetails from "./pages/PaymentDetails";
+import TestPasswordChange from "./pages/TestPasswordChange";
+
 import ProtectedRoute from "./components/ProtectedRoute";
+import { RoleBasedRoute } from "./components/Rolelayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider, useSidebar } from "./contexts/SidebarContext";
 
+/* ─────────────────────────────────────────────
+   Layout wrapper: Sidebar always visible
+─────────────────────────────────────────────── */
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useSidebar();
 
@@ -33,104 +42,171 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+/* ─────────────────────────────────────────────
+   Main Application
+─────────────────────────────────────────────── */
 function App() {
   return (
     <AuthProvider>
       <SidebarProvider>
         <BrowserRouter>
-          {" "}
-          {/* ✅ Changed from BrowserRouter */}
           <Routes>
+            {/* ──────── PUBLIC ROUTES ──────── */}
             <Route path="/login" element={<Login />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route
-                path="/"
-                element={
+            {/* ──────── DEFAULT DASHBOARD ──────── */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
                   <AppLayout>
                     <Dashboard />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/add-enquiry"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ──────── PERMISSION‑BASED ROUTES ──────── */}
+            <Route
+              path="/add-enquiry"
+              element={
+                <ProtectedRoute permission="Add Enquiry">
                   <AppLayout>
                     <AddEnquiry />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/view-enquiry"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/view-enquiry"
+              element={
+                <ProtectedRoute permission="View Enquiry">
                   <AppLayout>
                     <ViewEnquiry />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/search-enquiry"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ✅ PAYMENT DETAILS ROUTE */}
+            <Route
+              path="/payment-details"
+              element={
+                <ProtectedRoute permission="Manage Payment Details">
+                  <AppLayout>
+                    <PaymentDetails />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/search-enquiry"
+              element={
+                <ProtectedRoute permission="Search Enquiry">
                   <AppLayout>
                     <SearchEnquiry />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/today-followups"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/today-followups"
+              element={
+                <ProtectedRoute permission="Today's Follow-ups">
                   <AppLayout>
                     <TodayFollowUps />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/all-followups"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/all-followups"
+              element={
+                <ProtectedRoute permission="All Follow-ups">
                   <AppLayout>
                     <AllFollowUps />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/user-management"
-                element={
-                  <AppLayout>
-                    <UserManagement />
-                  </AppLayout>
-                }
-              />
-              {/* Advertisement Routes */}
-              <Route
-                path="/import-advertisement"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/import-advertisement"
+              element={
+                <ProtectedRoute permission="Import Advertisement">
                   <AppLayout>
                     <ImportAdvertisement />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/advertisement-enquiries"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/advertisement-enquiries"
+              element={
+                <ProtectedRoute permission="View Advertisement Data">
                   <AppLayout>
                     <AdvertisementEnquiries />
                   </AppLayout>
-                }
-              />
-              <Route
-                path="/search-advertisement"
-                element={
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/search-advertisement"
+              element={
+                <ProtectedRoute permission="Search Advertisement">
                   <AppLayout>
                     <SearchAdvertisementEnquiry />
                   </AppLayout>
-                }
-              />
-            </Route>
+                </ProtectedRoute>
+              }
+            />
 
+            {/* ──────── ADMIN‑ONLY ROUTES ──────── */}
+            <Route
+              path="/admin-profile"
+              element={
+                <RoleBasedRoute allowedRoles={["admin"]}>
+                  <AppLayout>
+                    <AdminProfile />
+                  </AppLayout>
+                </RoleBasedRoute>
+              }
+            />
+
+            <Route
+              path="/user-management"
+              element={
+                <RoleBasedRoute allowedRoles={["admin"]}>
+                  <AppLayout>
+                    <UserManagement />
+                  </AppLayout>
+                </RoleBasedRoute>
+              }
+            />
+
+            {/* ✅ TEST PASSWORD CHANGE - Fixed to use AppLayout */}
+            <Route
+              path="/test-password-change"
+              element={
+                <RoleBasedRoute allowedRoles={["admin"]}>
+                  <AppLayout>
+                    <TestPasswordChange />
+                  </AppLayout>
+                </RoleBasedRoute>
+              }
+            />
+
+            {/* ──────── FALLBACK ──────── */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>{" "}
-        {/* ✅ Changed from BrowserRouter */}
+        </BrowserRouter>
       </SidebarProvider>
     </AuthProvider>
   );

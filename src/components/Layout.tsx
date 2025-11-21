@@ -18,11 +18,18 @@ import {
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
+/**
+ * Layout
+ * ------------------------------------------------------------------------
+ * Master layout for authenticated pages, adds
+ * responsive sidebar + header with permission-aware navigation.
+ */
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -31,57 +38,97 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     navigate("/login");
   };
 
+  const isAdmin = currentUser?.role === "admin";
+  const perms = currentUser?.permissions || {};
+
+  // Define navigation structure with required permissions
   const menuItems = [
     {
       path: "/",
       icon: <Home size={20} />,
       label: "Dashboard",
-      roles: ["admin", "user"],
+      requiredPermission: undefined, // everyone sees dashboard
     },
     {
       path: "/add-enquiry",
       icon: <UserPlus size={20} />,
       label: "Add Enquiry",
-      roles: ["admin", "user"],
+      requiredPermission: "addEnquiry",
     },
     {
       path: "/view-enquiry",
       icon: <Eye size={20} />,
       label: "View Enquiries",
-      roles: ["admin", "user"],
+      requiredPermission: "viewEnquiry",
     },
     {
       path: "/search-enquiry",
       icon: <Search size={20} />,
       label: "Search Enquiry",
-      roles: ["admin", "user"],
+      requiredPermission: "searchEnquiry",
+    },
+    {
+      path: "/todays-followups",
+      icon: <Eye size={20} />,
+      label: "Today's Follow Ups",
+      requiredPermission: "todaysFollowUps",
+    },
+    {
+      path: "/all-followups",
+      icon: <Eye size={20} />,
+      label: "All Follow Ups",
+      requiredPermission: "allFollowUps",
+    },
+    {
+      path: "/import-advertisement",
+      icon: <UserPlus size={20} />,
+      label: "Import Advertisement",
+      requiredPermission: "importAdvertisement",
+    },
+    {
+      path: "/search-advertisement",
+      icon: <Search size={20} />,
+      label: "Search Advertisement",
+      requiredPermission: "searchAdvertisement",
+    },
+    {
+      path: "/view-advertisement-data",
+      icon: <Eye size={20} />,
+      label: "View Advertisement Data",
+      requiredPermission: "viewAdvertisementData",
     },
     {
       path: "/user-management",
       icon: <Users size={20} />,
       label: "User Management",
-      roles: ["admin"],
+      adminOnly: true,
+    },
+     {
+      path: "/payment-details",
+      icon: <Users size={20} />,
+      label: "User Management",
+      adminOnly: true,
     },
   ];
 
-  const filteredMenuItems = menuItems.filter((item) =>
-    item.roles.includes(currentUser?.role || "user")
-  );
+  // Filter items by admin or permission
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (item.adminOnly) return isAdmin;
+    if (!item.requiredPermission) return true;
+    return isAdmin || perms[item.requiredPermission];
+  });
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const isActive = (path: string) => location.pathname === path;
 
-  // Get user initials
   const getUserInitials = () => {
     if (!currentUser?.fullName) return "U";
-    const names = currentUser.fullName.split(" ");
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return currentUser.fullName.substring(0, 2).toUpperCase();
+    const parts = currentUser.fullName.trim().split(" ");
+    return parts.slice(0, 2).map((s) => s[0].toUpperCase()).join("");
   };
 
+  /*─────────────────────────────────────────────*
+    RENDER
+  *─────────────────────────────────────────────*/
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar - Desktop */}
@@ -114,11 +161,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               className="p-2 text-green-100 hover:bg-green-700 rounded-lg transition-colors ml-auto"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              {isCollapsed ? (
-                <ChevronRight size={20} />
-              ) : (
-                <ChevronLeft size={20} />
-              )}
+              {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
           </div>
 
@@ -136,9 +179,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 title={isCollapsed ? item.label : ""}
               >
                 <span
-                  className={
-                    isActive(item.path) ? "text-green-600" : "text-green-300"
-                  }
+                  className={isActive(item.path) ? "text-green-600" : "text-green-300"}
                 >
                   {item.icon}
                 </span>
@@ -162,7 +203,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       {currentUser?.fullName}
                     </p>
                     <p className="text-xs text-green-300 truncate">
-                      {currentUser?.role === "admin" ? "Administrator" : "User"}
+                      {isAdmin ? "Administrator" : "User"}
                     </p>
                   </div>
                 </div>
@@ -177,9 +218,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">
-                    {getUserInitials()}
-                  </span>
+                  <span className="text-sm font-bold text-white">{getUserInitials()}</span>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -242,9 +281,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 }`}
               >
                 <span
-                  className={
-                    isActive(item.path) ? "text-green-600" : "text-green-300"
-                  }
+                  className={isActive(item.path) ? "text-green-600" : "text-green-300"}
                 >
                   {item.icon}
                 </span>
@@ -257,16 +294,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="p-4 border-t border-green-700 bg-green-900">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                <span className="text-sm font-bold text-white">
-                  {getUserInitials()}
-                </span>
+                <span className="text-sm font-bold text-white">{getUserInitials()}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
                   {currentUser?.fullName}
                 </p>
                 <p className="text-xs text-green-300 truncate">
-                  {currentUser?.role === "admin" ? "Administrator" : "User"}
+                  {isAdmin ? "Administrator" : "User"}
                 </p>
               </div>
             </div>
@@ -281,94 +316,26 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header - Mobile */}
-        <header className="md:hidden flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200 shadow-sm">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Menu size={24} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <Shield size={20} className="text-white" />
-            </div>
-            <h1 className="text-lg font-bold text-gray-800">EnquiryPro</h1>
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">
-                  {getUserInitials()}
-                </span>
-              </div>
-            </button>
-
-            {/* Mobile User Menu Dropdown */}
-            {showUserMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowUserMenu(false)}
-                />
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">
-                      {currentUser?.fullName}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {currentUser?.email || currentUser?.username}
-                    </p>
-                    <span
-                      className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${
-                        currentUser?.role === "admin"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {currentUser?.role === "admin" ? "Administrator" : "User"}
-                    </span>
-                  </div>
-                  <div className="p-2">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </header>
-
-        {/* Top Header - Desktop */}
+        {/* Top Header */}
         <header className="hidden md:flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 shadow-sm">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
               {filteredMenuItems.find((item) => isActive(item.path))?.label ||
                 "Dashboard"}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500">
               Welcome back, {currentUser?.fullName}
             </p>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notifications */}
             <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell size={20} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
 
-            {/* User Menu */}
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -384,7 +351,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     {currentUser?.fullName}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {currentUser?.role === "admin" ? "Administrator" : "User"}
+                    {isAdmin ? "Administrator" : "User"}
                   </p>
                 </div>
                 <ChevronDown
@@ -395,7 +362,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 />
               </button>
 
-              {/* Desktop User Menu Dropdown */}
               {showUserMenu && (
                 <>
                   <div
@@ -412,14 +378,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       </p>
                       <span
                         className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${
-                          currentUser?.role === "admin"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-green-100 text-green-800"
+                          isAdmin ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {currentUser?.role === "admin"
-                          ? "Administrator"
-                          : "User"}
+                        {isAdmin ? "Administrator" : "User"}
                       </span>
                     </div>
                     <div className="p-2">
@@ -438,7 +400,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </header>
 
-        {/* Main Content Area */}
         <main className="flex-1 overflow-auto bg-gray-50">{children}</main>
       </div>
     </div>

@@ -2,181 +2,107 @@ import React, { useState, useEffect } from "react";
 import "./animation.css";
 import "react-datepicker/dist/react-datepicker.css";
 import { storageUtils, type EnquiryData } from "../utils/storageUtils";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
+// ------------------------------------------------------------------
 // Types
+// ------------------------------------------------------------------
 interface FormData {
   fullName: string;
   mobile: string;
   alternateMobile: string;
   email: string;
   address: string;
+
+  // Document
   aadharNumber: string;
-  panNumber: string;
-  demateAccount1: string;
-  demateAccount2: string;
-  enquiryState: string;
+
+  // Enquiry and meta
+  enquiryDistrict: string;
   sourceOfEnquiry: string;
   interestedStatus: string;
   howDidYouKnow: string;
   customHowDidYouKnow: string;
   callBackDate: string;
-  depositInwardDate: string;
-  depositOutwardDate: string;
+  paidFessDate: string;
   status: string;
-  profession: string;
-  customProfession: string;
-  knowledgeOfShareMarket: string;
+  education: string;
+  customEducation: string;
+  knowledgeOfAndroid: string;
+
+  // Payment fields
+  totalFees: string;
+  paidFees: string;
+  remainingFees: string;
+  paymentMode: "" | "Online" | "Offline";
+  offlinePaymentType: "" | "Cash" | "Cheque";
+  onlineTransactionId: string;
+  chequeNumber: string;
 }
 
 interface FormErrors {
   [key: string]: string;
 }
 
-// ========== Validation Functions ==========
+// ------------------------------------------------------------------
+// Validation helpers
+// ------------------------------------------------------------------
 const ValidationHelpers = {
-  // Validate Full Name
   validateFullName: (name: string): string => {
-    if (!name.trim()) {
-      return "Full name is required";
-    }
-    if (name.trim().length < 3) {
-      return "Name must be at least 3 characters";
-    }
-    if (!/^[a-zA-Z\s.]+$/.test(name)) {
-      return "Name can only contain letters, spaces, and dots";
-    }
-    if (name.trim().length > 100) {
-      return "Name must not exceed 100 characters";
-    }
+    if (!name.trim()) return "Full name is required";
+    if (name.trim().length < 3) return "Name must be at least 3 characters";
+    if (!/^[a-zA-Z\s.]+$/.test(name)) return "Name can only contain letters, spaces, and dots";
+    if (name.trim().length > 100) return "Name must not exceed 100 characters";
     return "";
   },
-
-  // Validate Mobile Number
   validateMobile: (mobile: string, fieldName: string = "Mobile"): string => {
-    if (!mobile.trim()) {
-      return `${fieldName} number is required`;
-    }
-    if (!/^\d{10}$/.test(mobile)) {
-      return `${fieldName} number must be exactly 10 digits`;
-    }
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      return `${fieldName} number must start with 6, 7, 8, or 9`;
-    }
+    if (!mobile.trim()) return `${fieldName} number is required`;
+    if (!/^\d{10}$/.test(mobile)) return `${fieldName} number must be exactly 10 digits`;
+    if (!/^[6-9]\d{9}$/.test(mobile)) return `${fieldName} number must start with 6, 7, 8, or 9`;
     return "";
   },
-
-  // Validate Email
   validateEmail: (email: string): string => {
-    if (!email.trim()) {
-      return "Email address is required";
-    }
+    if (!email.trim()) return "Email address is required";
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address";
-    }
-    if (email.length > 100) {
-      return "Email must not exceed 100 characters";
-    }
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    if (email.length > 100) return "Email must not exceed 100 characters";
     return "";
   },
-
-  // Validate Aadhar Number
   validateAadhar: (aadhar: string): string => {
-    if (!aadhar.trim()) {
-      return "Aadhar number is required";
-    }
+    if (!aadhar.trim()) return "";
     const cleanAadhar = aadhar.replace(/\s/g, "");
-    if (!/^\d{12}$/.test(cleanAadhar)) {
-      return "Aadhar number must be exactly 12 digits";
-    }
-    if (cleanAadhar === "000000000000" || cleanAadhar === "111111111111") {
-      return "Invalid Aadhar number format";
-    }
+    if (!/^\d{12}$/.test(cleanAadhar)) return "Aadhar number must be exactly 12 digits";
+    if (cleanAadhar === "000000000000" || cleanAadhar === "111111111111") return "Invalid Aadhar number format";
     return "";
   },
-
-  // Validate PAN Number
-  validatePAN: (pan: string): string => {
-    if (!pan.trim()) {
-      return "PAN number is required";
-    }
-    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    if (!panRegex.test(pan.toUpperCase())) {
-      return "Invalid PAN format (e.g., ABCDE1234F)";
-    }
-    const fourthChar = pan.charAt(3).toUpperCase();
-    const validFourthChars = ["P", "C", "H", "F", "A", "T", "B", "L", "J", "G"];
-    if (!validFourthChars.includes(fourthChar)) {
-      return "Invalid PAN number - 4th character must be P, C, H, F, A, T, B, L, J, or G";
-    }
-    return "";
-  },
-
-  // Validate Address
   validateAddress: (address: string): string => {
-    if (!address.trim()) {
-      return "Address is required";
-    }
-    if (address.trim().length < 10) {
-      return "Address must be at least 10 characters";
-    }
-    if (address.trim().length > 500) {
-      return "Address must not exceed 500 characters";
-    }
+    if (!address.trim()) return "Address is required";
+    if (address.trim().length < 10) return "Address must be at least 10 characters";
+    if (address.trim().length > 500) return "Address must not exceed 500 characters";
     return "";
   },
+  validateDate: (date: string, fieldName: string, allowPast: boolean = false): string => {
+    if (!date) return `${fieldName} is required`;
 
-  // ✅ Updated Validate Demat Account (min 8, max 16)
-  validateDematAccount: (
-    account: string,
-    isRequired: boolean = true
-  ): string => {
-    if (!account.trim()) {
-      return isRequired ? "Demat account ID is required" : "";
-    }
-    if (account.trim().length < 8) {
-      return "Demat account ID must be at least 8 characters";
-    }
-    if (account.trim().length > 16) {
-      return "Demat account ID must not exceed 16 characters";
-    }
-    if (!/^[A-Z0-9]+$/.test(account.toUpperCase())) {
-      return "Demat account ID can only contain letters and numbers";
-    }
-    return "";
-  },
-
-  // ✅ Updated Validate Date (allow today or future for Deposit Inward)
-  validateDate: (
-    date: string,
-    fieldName: string,
-    allowPast: boolean = false
-  ): string => {
-    if (!date) {
-      return `${fieldName} is required`;
-    }
     const selectedDate = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (isNaN(selectedDate.getTime())) {
-      return `Invalid ${fieldName.toLowerCase()}`;
-    }
-
-    if (!allowPast && selectedDate < today) {
-      return `${fieldName} cannot be in the past`;
-    }
+    if (isNaN(selectedDate.getTime())) return `Invalid ${fieldName.toLowerCase()}`;
+    if (!allowPast && selectedDate < today) return `${fieldName} cannot be in the past`;
 
     const twoYearsFromNow = new Date();
     twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
-    if (selectedDate > twoYearsFromNow) {
-      return `${fieldName} cannot be more than 2 years in the future`;
-    }
+    if (selectedDate > twoYearsFromNow) return `${fieldName} cannot be more than 2 years in the future`;
+
     return "";
   },
 };
 
-// Reusable Field Component
+// ------------------------------------------------------------------
+// Reusable UI components
+// ------------------------------------------------------------------
 const Field: React.FC<{
   label: string;
   name: string;
@@ -191,6 +117,8 @@ const Field: React.FC<{
   maxLength?: number;
   minLength?: number;
   pattern?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
 }> = ({
   label,
   name,
@@ -205,23 +133,18 @@ const Field: React.FC<{
   maxLength,
   minLength,
   pattern,
+  readOnly,
+  disabled,
 }) => {
   const isDuplicate = error?.includes("⚠️");
-
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label
-        htmlFor={name}
-        className="flex items-center text-gray-700 text-sm font-medium"
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            {icon}
-          </div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>
         )}
         <input
           id={name}
@@ -234,18 +157,16 @@ const Field: React.FC<{
           maxLength={maxLength}
           minLength={minLength}
           pattern={pattern}
-          className={`w-full h-11 border rounded-lg px-3 ${
-            icon ? "pl-10" : ""
-          } text-sm text-gray-900 placeholder-gray-400 
-          transition-all duration-200
-          ${
-            error
+          readOnly={readOnly}
+          disabled={disabled}
+          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
+            } text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${readOnly || disabled ? "bg-gray-50" : ""
+            } ${error
               ? isDuplicate
                 ? "border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:border-yellow-500 bg-yellow-50"
                 : "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-          }
-          hover:border-gray-400 focus:outline-none`}
+            } hover:border-gray-400 focus:outline-none`}
         />
         {maxLength && value.length > 0 && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
@@ -255,9 +176,8 @@ const Field: React.FC<{
       </div>
       {error && (
         <span
-          className={`text-xs flex items-center gap-1 ${
-            isDuplicate ? "text-yellow-600 font-medium" : "text-red-500"
-          }`}
+          className={`text-xs flex items-center gap-1 ${isDuplicate ? "text-yellow-600 font-medium" : "text-red-500"
+            }`}
         >
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -273,7 +193,6 @@ const Field: React.FC<{
   );
 };
 
-// Textarea Field Component
 const TextAreaField: React.FC<{
   label: string;
   name: string;
@@ -284,25 +203,11 @@ const TextAreaField: React.FC<{
   placeholder?: string;
   error?: string;
   rows?: number;
-}> = ({
-  label,
-  name,
-  value,
-  onChange,
-  onBlur,
-  required,
-  placeholder,
-  error,
-  rows = 4,
-}) => {
+}> = ({ label, name, value, onChange, onBlur, required, placeholder, error, rows = 4 }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label
-        htmlFor={name}
-        className="flex items-center text-gray-700 text-sm font-medium"
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <textarea
         id={name}
@@ -312,14 +217,10 @@ const TextAreaField: React.FC<{
         onBlur={onBlur}
         placeholder={placeholder}
         rows={rows}
-        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 
-        transition-all duration-200 resize-none
-        ${
-          error
-            ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-            : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-        }
-        hover:border-gray-400 focus:outline-none`}
+        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 resize-none ${error
+          ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
+          : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+          } hover:border-gray-400 focus:outline-none`}
       />
       {error && (
         <span className="text-xs text-red-500 flex items-center gap-1">
@@ -337,7 +238,6 @@ const TextAreaField: React.FC<{
   );
 };
 
-// Dropdown Field Component
 const DropdownField: React.FC<{
   label: string;
   name: string;
@@ -351,12 +251,8 @@ const DropdownField: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="flex flex-col gap-1.5 w-full relative">
-      <label
-        htmlFor={name}
-        className="flex items-center text-gray-700 text-sm font-medium"
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
@@ -367,42 +263,26 @@ const DropdownField: React.FC<{
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center justify-between w-full h-11 px-3 ${
-            icon ? "pl-10" : ""
-          } border rounded-lg text-left text-sm
-          transition-all duration-200
-          ${
-            error
+          className={`flex items-center justify-between w-full h-11 px-3 ${icon ? "pl-10" : ""
+            } border rounded-lg text-left text-sm transition-all duration-200 ${error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-          }
-          hover:border-gray-400 focus:outline-none ${
-            value ? "text-gray-900" : "text-gray-400"
-          }`}
+            } hover:border-gray-400 focus:outline-none ${value ? "text-gray-900" : "text-gray-400"}`}
         >
           <span className="truncate">{value || "Select an option"}</span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         {isOpen && (
           <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsOpen(false)}
-            />
+            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
             <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
               {options.map((option, index) => (
                 <button
@@ -412,18 +292,8 @@ const DropdownField: React.FC<{
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 text-left text-sm hover:bg-green-50 transition-colors
-                  ${
-                    value === option
-                      ? "bg-green-50 text-green-700 font-medium"
-                      : "text-gray-700"
-                  }
-                  ${
-                    index !== options.length - 1
-                      ? "border-b border-gray-100"
-                      : ""
-                  }
-                  first:rounded-t-lg last:rounded-b-lg`}
+                  className={`w-full px-3 py-2.5 text-left text-sm hover:bg-green-50 transition-colors ${value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                    } ${index !== options.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
                 >
                   {option}
                 </button>
@@ -448,7 +318,145 @@ const DropdownField: React.FC<{
   );
 };
 
-// Date Field Component
+const SearchableDropdownField: React.FC<{
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  required?: boolean;
+  error?: string;
+  icon?: React.ReactNode;
+  placeholder?: string;
+  onBlur?: () => void;
+}> = ({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  required,
+  error,
+  icon,
+  placeholder = "Type to search...",
+  onBlur,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  const normalized = (s: string) => s.toLowerCase().trim();
+  const filtered = options.filter((opt) => normalized(opt).includes(normalized(query)));
+
+  const selectOption = (opt: string) => {
+    onChange(opt);
+    setQuery(opt);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full relative">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+            {icon}
+          </div>
+        )}
+        <input
+          id={name}
+          name={name}
+          type="text"
+          value={query}
+          placeholder={placeholder}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => {
+            onBlur?.();
+            if (query !== value) onChange(query);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (filtered[0]) selectOption(filtered[0]);
+              else onChange(query);
+            } else if (e.key === "Escape") {
+              setIsOpen(false);
+            }
+          }}
+          autoComplete="off"
+          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
+            } text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${error
+              ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
+              : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+            } hover:border-gray-400 focus:outline-none`}
+        />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+            onClick={() => {
+              setQuery("");
+              onChange("");
+            }}
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        )}
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+              {filtered.length > 0 ? (
+                filtered.map((option, index) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => selectOption(option)}
+                    className={`w-full px-3 py-2.5 text-left text-sm hover:bg-green-50 transition-colors ${value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                      } ${index !== filtered.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
+                  >
+                    {option}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2.5 text-sm text-gray-500">No results found</div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      {error && (
+        <span className="text-xs text-red-500 flex items-center gap-1">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const DateField: React.FC<{
   label: string;
   name: string;
@@ -461,12 +469,8 @@ const DateField: React.FC<{
 }> = ({ label, name, value, onChange, required, error, icon, min }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label
-        htmlFor={name}
-        className="flex items-center text-gray-700 text-sm font-medium"
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
@@ -481,15 +485,11 @@ const DateField: React.FC<{
           value={value}
           onChange={(e) => onChange(e.target.value)}
           min={min}
-          className={`w-full h-11 border rounded-lg px-3 ${
-            icon ? "pl-10" : ""
-          } text-sm text-gray-900
-          ${
-            error
+          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
+            } text-sm text-gray-900 ${error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-          }
-          hover:border-gray-400 focus:outline-none transition-all duration-200`}
+            } hover:border-gray-400 focus:outline-none transition-all duration-200`}
         />
       </div>
       {error && (
@@ -508,7 +508,6 @@ const DateField: React.FC<{
   );
 };
 
-// Toast Notification Component
 const Toast: React.FC<{
   message: string;
   type: "success" | "error";
@@ -518,12 +517,10 @@ const Toast: React.FC<{
     const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
-
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in-right ${
-        type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-      }`}
+      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in-right ${type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+        }`}
     >
       {type === "success" ? (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -556,7 +553,6 @@ const Toast: React.FC<{
   );
 };
 
-// Duplicate Warning Modal Component
 const DuplicateWarningModal: React.FC<{
   existingEnquiry: EnquiryData;
   duplicateField: string;
@@ -567,12 +563,7 @@ const DuplicateWarningModal: React.FC<{
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 animate-scale-in">
         <div className="flex items-start gap-4 mb-4">
           <div className="p-3 bg-yellow-100 rounded-full">
-            <svg
-              className="w-6 h-6 text-yellow-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -598,21 +589,15 @@ const DuplicateWarningModal: React.FC<{
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Enquiry ID:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.id}
-              </span>
+              <span className="font-medium text-gray-900">{existingEnquiry.id}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Name:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.fullName}
-              </span>
+              <span className="font-medium text-gray-900">{existingEnquiry.fullName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Mobile:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.mobile}
-              </span>
+              <span className="font-medium text-gray-900">{existingEnquiry.mobile}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Email:</span>
@@ -622,9 +607,7 @@ const DuplicateWarningModal: React.FC<{
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Status:</span>
-              <span className="font-medium text-gray-900">
-                {existingEnquiry.status}
-              </span>
+              <span className="font-medium text-gray-900">{existingEnquiry.status}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Created:</span>
@@ -637,9 +620,8 @@ const DuplicateWarningModal: React.FC<{
 
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-xs text-red-700">
-            <strong>Important:</strong> Each mobile, email, Aadhar and PAN
-            number must be unique. Please verify the information or update the
-            existing enquiry instead of creating a new one.
+            <strong>Important:</strong> Each mobile, email, and Aadhar number must be unique. Please
+            verify the information or update the existing enquiry instead of creating a new one.
           </p>
         </div>
 
@@ -656,8 +638,14 @@ const DuplicateWarningModal: React.FC<{
   );
 };
 
-// Main Component
+// ------------------------------------------------------------------
+// Main component
+// ------------------------------------------------------------------
 const AddEnquiry: React.FC = () => {
+  const { isAdmin, hasPermission } = useAuth();
+  const canManagePayments = hasPermission("Manage Payment Details"); // admin also true
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     mobile: "",
@@ -665,46 +653,38 @@ const AddEnquiry: React.FC = () => {
     email: "",
     address: "",
     aadharNumber: "",
-    panNumber: "",
-    demateAccount1: "",
-    demateAccount2: "",
-    enquiryState: "",
+    enquiryDistrict: "",
     sourceOfEnquiry: "",
     interestedStatus: "",
     howDidYouKnow: "",
     customHowDidYouKnow: "",
     callBackDate: "",
-    depositInwardDate: "",
-    depositOutwardDate: "",
+    paidFessDate: "",
     status: "",
-    profession: "",
-    customProfession: "",
-    knowledgeOfShareMarket: "",
+    education: "",
+    customEducation: "",
+    knowledgeOfAndroid: "",
+    totalFees: "25000",      // default
+    paidFees: "",
+    remainingFees: "25000",  // default
+    paymentMode: "",
+    offlinePaymentType: "",
+    onlineTransactionId: "",
+    chequeNumber: "",
   });
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
-  const [duplicateEnquiry, setDuplicateEnquiry] = useState<EnquiryData | null>(
-    null
-  );
+  const [duplicateEnquiry, setDuplicateEnquiry] = useState<EnquiryData | null>(null);
   const [duplicateField, setDuplicateField] = useState<string>("");
-  const [stats, setStats] = useState({
-    total: 0,
-    confirmed: 0,
-    pending: 0,
-    inProcess: 0,
-  });
+  const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, inProcess: 0 });
 
-  // ✅ Check if status is "Confirmed" to show additional fields
   const isConfirmed = formData.status === "Confirmed";
 
-  // Load statistics on component mount
   useEffect(() => {
     const loadStats = async () => {
       const statistics = await storageUtils.getStatistics();
@@ -713,54 +693,75 @@ const AddEnquiry: React.FC = () => {
     loadStats();
   }, []);
 
-  // Format mobile number
-  const formatMobile = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 10);
-    return digits;
-  };
-
-  // Format Aadhar number (XXXX XXXX XXXX)
+  const formatMobile = (value: string) => value.replace(/\D/g, "").slice(0, 10);
   const formatAadhar = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
     return digits.replace(/(\d{4})(\d{4})(\d{4})/, "$1 $2 $3").trim();
   };
+  // REMOVE LENGTH LIMIT: keep only digits, no slicing
+  const formatAmount = (value: string) => value.replace(/\D/g, "");
+  const formatCheque = (value: string) => value.replace(/\D/g, "").slice(0, 20);
+  const formatTxnId = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 30);
 
-  // Format PAN number
-  const formatPAN = (value: string) => {
-    return value
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .slice(0, 10);
+  const recalcRemaining = (total: string, paid: string) => {
+    if (!total && !paid) return "";
+    const t = Number(total || "0");
+    const p = Number(paid || "0");
+    return String(Math.max(t - p, 0));
   };
 
-  // Handle field changes
   const handleChange = (field: keyof FormData, value: string) => {
     let formattedValue = value;
+
     if (field === "mobile" || field === "alternateMobile") {
       formattedValue = formatMobile(value);
     } else if (field === "aadharNumber") {
       formattedValue = formatAadhar(value);
-    } else if (field === "panNumber") {
-      formattedValue = formatPAN(value);
-    } else if (field === "demateAccount1" || field === "demateAccount2") {
-      formattedValue = value
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, "")
-        .slice(0, 16);
+    } else if (field === "totalFees" || field === "paidFees") {
+      formattedValue = formatAmount(value);
+    } else if (field === "chequeNumber") {
+      formattedValue = formatCheque(value);
+    } else if (field === "onlineTransactionId") {
+      formattedValue = formatTxnId(value);
+    } else if (field === "paymentMode") {
+      setFormData((prev) => ({
+        ...prev,
+        paymentMode: value as FormData["paymentMode"],
+        onlineTransactionId: value === "Online" ? prev.onlineTransactionId : "",
+        offlinePaymentType: value === "Offline" ? prev.offlinePaymentType : "",
+        chequeNumber: value === "Offline" ? prev.chequeNumber : "",
+      }));
+      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+      return;
+    } else if (field === "offlinePaymentType") {
+      setFormData((prev) => ({
+        ...prev,
+        offlinePaymentType: value as FormData["offlinePaymentType"],
+        chequeNumber: value === "Cash" ? "" : prev.chequeNumber,
+      }));
+      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+      return;
     }
-    setFormData((prev) => ({ ...prev, [field]: formattedValue }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+
+    setFormData((prev) => {
+      const next = { ...prev, [field]: formattedValue };
+      if (field === "totalFees" || field === "paidFees") {
+        next.remainingFees = recalcRemaining(
+          field === "totalFees" ? formattedValue : next.totalFees,
+          field === "paidFees" ? formattedValue : next.paidFees
+        );
+      }
+      return next;
+    });
+
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  // Handle field blur for real-time validation
   const handleBlur = (field: keyof FormData) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     validateField(field);
   };
 
-  // Validate individual field
   const validateField = async (field: keyof FormData) => {
     const value = formData[field];
     let error = "";
@@ -780,9 +781,8 @@ const AddEnquiry: React.FC = () => {
       case "alternateMobile":
         if (value) {
           error = ValidationHelpers.validateMobile(value, "Alternate mobile");
-          if (!error && value === formData.mobile) {
+          if (!error && value === formData.mobile)
             error = "Alternate mobile cannot be same as primary mobile";
-          }
         }
         break;
 
@@ -798,7 +798,7 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "aadharNumber":
-        if (isConfirmed) {
+        if (value) {
           error = ValidationHelpers.validateAadhar(value);
           if (!error && (await storageUtils.isAadharExists(value))) {
             error = "⚠️ This Aadhar number is already registered";
@@ -806,39 +806,8 @@ const AddEnquiry: React.FC = () => {
             if (existing) {
               setDuplicateEnquiry(existing);
               setDuplicateField("Aadhar");
+              setShowDuplicateWarning(true);
             }
-          }
-        }
-        break;
-
-      case "panNumber":
-        if (isConfirmed) {
-          error = ValidationHelpers.validatePAN(value);
-          if (!error && (await storageUtils.isPANExists(value))) {
-            error = "⚠️ This PAN number is already registered";
-            const existing = await storageUtils.getExistingEnquiry(
-              undefined,
-              value
-            );
-            if (existing) {
-              setDuplicateEnquiry(existing);
-              setDuplicateField("PAN");
-            }
-          }
-        }
-        break;
-
-      case "demateAccount1":
-        if (isConfirmed) {
-          error = ValidationHelpers.validateDematAccount(value, true);
-        }
-        break;
-
-      case "demateAccount2":
-        if (isConfirmed && value) {
-          error = ValidationHelpers.validateDematAccount(value, false);
-          if (!error && value === formData.demateAccount1) {
-            error = "Demat Account 2 cannot be same as Demat Account 1";
           }
         }
         break;
@@ -847,36 +816,10 @@ const AddEnquiry: React.FC = () => {
         error = ValidationHelpers.validateDate(value, "Call back date", true);
         break;
 
-      case "depositInwardDate":
-        if (isConfirmed) {
-          // ✅ Allow only today or future dates
-          error = ValidationHelpers.validateDate(
-            value,
-            "Deposit inward date",
-            false
-          );
+      case "paidFessDate":
+        if (isConfirmed && isAdmin()) {
+          error = ValidationHelpers.validateDate(value, "Paid Fees date", false);
         }
-        break;
-
-      case "depositOutwardDate":
-        if (isConfirmed) {
-          error = ValidationHelpers.validateDate(
-            value,
-            "Deposit outward date",
-            false
-          );
-          if (!error && formData.depositInwardDate) {
-            const inward = new Date(formData.depositInwardDate);
-            const outward = new Date(value);
-            if (outward < inward) {
-              error = "Deposit outward date cannot be before inward date";
-            }
-          }
-        }
-        break;
-
-      case "enquiryState":
-        if (!value) error = "Please select a state";
         break;
 
       case "sourceOfEnquiry":
@@ -891,11 +834,11 @@ const AddEnquiry: React.FC = () => {
         if (!value) error = "Please select status";
         break;
 
-      case "profession":
-        if (isConfirmed && !value) error = "Please select profession";
+      case "education":
+        if (isConfirmed && !value) error = "Please select Education";
         break;
 
-      case "knowledgeOfShareMarket":
+      case "knowledgeOfAndroid":
         if (isConfirmed && !value) error = "Please select knowledge level";
         break;
 
@@ -904,90 +847,123 @@ const AddEnquiry: React.FC = () => {
         break;
 
       case "customHowDidYouKnow":
-        if (
-          isConfirmed &&
-          formData.howDidYouKnow === "Other" &&
-          !value.trim()
-        ) {
+        if (isConfirmed && formData.howDidYouKnow === "Other" && !value.trim())
           error = "Please specify how you knew about us";
+        break;
+
+      case "customEducation":
+        if (isConfirmed && formData.education === "Other" && !value.trim())
+          error = "Please specify your Education";
+        break;
+
+      case "totalFees":
+        if (isConfirmed && isAdmin()) {
+          if (!value) error = "Please enter total fees amount";
+          else if (!/^\d+$/.test(value) || Number(value) <= 0)
+            error = "Total fees must be a positive number";
+          else if (formData.paidFees && Number(formData.paidFees) > Number(value))
+            error = "Paid fees cannot exceed Total fees";
         }
         break;
 
-      case "customProfession":
-        if (isConfirmed && formData.profession === "Other" && !value.trim()) {
-          error = "Please specify your profession";
+      case "paidFees":
+        if (isConfirmed && isAdmin()) {
+          if (!value) error = "Please enter paid fees amount";
+          else if (!/^\d+$/.test(value) || Number(value) < 0)
+            error = "Paid fees cannot be negative";
+          else if (formData.totalFees && Number(value) > Number(formData.totalFees))
+            error = "Paid fees cannot exceed Total fees";
+        }
+        break;
+
+      case "paymentMode":
+        if (isConfirmed && isAdmin() && !value) error = "Please select payment mode";
+        break;
+
+      case "offlinePaymentType":
+        if (isConfirmed && isAdmin() && formData.paymentMode === "Offline" && !value)
+          error = "Please select offline payment type";
+        break;
+
+      case "onlineTransactionId":
+        if (isConfirmed && isAdmin() && formData.paymentMode === "Online") {
+          if (!value.trim()) error = "Please enter online transaction ID";
+          else if (!/^[A-Z0-9]{6,30}$/.test(value))
+            error = "Enter a valid transaction ID (6-30 chars, A-Z/0-9)";
+        }
+        break;
+
+      case "chequeNumber":
+        if (
+          isConfirmed &&
+          isAdmin() &&
+          formData.paymentMode === "Offline" &&
+          formData.offlinePaymentType === "Cheque"
+        ) {
+          if (!value.trim()) error = "Please enter cheque number";
+          else if (!/^\d{6,20}$/.test(value))
+            error = "Enter a valid cheque number (6-20 digits)";
         }
         break;
     }
 
-    if (error) {
-      setErrors((prev) => ({ ...prev, [field]: error }));
-    } else {
+    if (error) setErrors((prev) => ({ ...prev, [field]: error }));
+    else
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
       });
-    }
+
     return error;
   };
 
-  // Validation
   const validate = async (): Promise<boolean> => {
     const newErrors: FormErrors = {};
-
-    // ✅ Always required fields
     const alwaysRequiredFields: (keyof FormData)[] = [
       "fullName",
       "mobile",
       "email",
       "address",
-      "enquiryState",
       "interestedStatus",
       "status",
       "callBackDate",
     ];
-
-    // ✅ Fields required only when status is "Confirmed"
     const confirmedRequiredFields: (keyof FormData)[] = [
-      "aadharNumber",
-      "panNumber",
-      "demateAccount1",
       "sourceOfEnquiry",
-      "profession",
-      "knowledgeOfShareMarket",
+      "education",
+      "knowledgeOfAndroid",
       "howDidYouKnow",
-      "depositInwardDate",
-      "depositOutwardDate",
+    ];
+    const adminPaymentFields: (keyof FormData)[] = [
+      "paidFessDate",
+      "totalFees",
+      "paidFees",
+      "paymentMode",
     ];
 
-    // Validate always required fields
     for (const field of alwaysRequiredFields) {
       const error = await validateField(field);
-      if (error) {
-        newErrors[field] = error;
-      }
+      if (error) newErrors[field] = error;
     }
 
-    // Validate confirmed-only fields if status is "Confirmed"
     if (isConfirmed) {
       for (const field of confirmedRequiredFields) {
         const error = await validateField(field);
-        if (error) {
-          newErrors[field] = error;
+        if (error) newErrors[field] = error;
+      }
+
+      if (isAdmin()) {
+        for (const field of adminPaymentFields) {
+          const error = await validateField(field);
+          if (error) newErrors[field] = error;
         }
       }
     }
 
-    // Validate optional fields if they have values
     if (formData.alternateMobile) {
       const error = await validateField("alternateMobile");
       if (error) newErrors.alternateMobile = error;
-    }
-
-    if (isConfirmed && formData.demateAccount2) {
-      const error = await validateField("demateAccount2");
-      if (error) newErrors.demateAccount2 = error;
     }
 
     if (isConfirmed && formData.howDidYouKnow === "Other") {
@@ -995,65 +971,50 @@ const AddEnquiry: React.FC = () => {
       if (error) newErrors.customHowDidYouKnow = error;
     }
 
-    if (isConfirmed && formData.profession === "Other") {
-      const error = await validateField("customProfession");
-      if (error) newErrors.customProfession = error;
+    if (isConfirmed && formData.education === "Other") {
+      const error = await validateField("customEducation");
+      if (error) newErrors.customEducation = error;
+    }
+
+    if (isConfirmed && isAdmin() && formData.paymentMode === "Online") {
+      const error = await validateField("onlineTransactionId");
+      if (error) newErrors.onlineTransactionId = error;
+    }
+
+    if (isConfirmed && isAdmin() && formData.paymentMode === "Offline") {
+      const errType = await validateField("offlinePaymentType");
+      if (errType) newErrors.offlinePaymentType = errType;
+
+      if (formData.offlinePaymentType === "Cheque") {
+        const errCheque = await validateField("chequeNumber");
+        if (errCheque) newErrors.chequeNumber = errCheque;
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🔴 FORM SUBMIT - Starting...");
-    console.log("🔴 Form data:", formData);
-
     const allTouched: Record<string, boolean> = {};
-    Object.keys(formData).forEach((key) => {
-      allTouched[key] = true;
-    });
+    Object.keys(formData).forEach((key) => (allTouched[key] = true));
     setTouched(allTouched);
 
-    // Check for duplicates first
-    const duplicates = await storageUtils.checkDuplicates(formData);
-
+    const duplicates = await storageUtils.checkDuplicates(formData as any);
     if (duplicates.length > 0) {
       const duplicateErrors: FormErrors = {};
-      duplicates.forEach(({ field, message }) => {
+      duplicates.forEach(({ field, message }: any) => {
         duplicateErrors[field] = `⚠️ ${message}`;
       });
       setErrors((prev) => ({ ...prev, ...duplicateErrors }));
-
-      const firstDuplicate = duplicates[0];
-      const existing = await storageUtils.getExistingEnquiry(
-        firstDuplicate.field === "aadharNumber"
-          ? formData.aadharNumber
-          : undefined,
-        firstDuplicate.field === "panNumber" ? formData.panNumber : undefined,
-        firstDuplicate.field === "mobile" ? formData.mobile : undefined,
-        firstDuplicate.field === "email" ? formData.email : undefined
-      );
-
-      if (existing) {
-        setDuplicateEnquiry(existing);
-        setDuplicateField(firstDuplicate.field);
-        setShowDuplicateWarning(true);
-      }
-
       setToast({
         message: `Duplicate found: ${duplicates
-          .map((d) => d.field)
-          .join(", ")}. Please check the highlighted fields.`,
+          .map((d: any) => d.field)
+          .join(", ")}. Please check highlighted fields.`,
         type: "error",
       });
-
-      const firstErrorField = duplicates[0].field;
-      const element = document.getElementById(firstErrorField);
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-
       return;
     }
 
@@ -1062,37 +1023,57 @@ const AddEnquiry: React.FC = () => {
         message: "Please fix all validation errors before submitting",
         type: "error",
       });
-      const firstErrorField = Object.keys(errors)[0];
-      if (firstErrorField) {
-        const element = document.getElementById(firstErrorField);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      console.log("🔴 Calling storageUtils.saveEnquiry...");
+      const totalAmount = parseFloat(formData.totalFees || "0");
+      const paidAmount = parseFloat(formData.paidFees || "0");
+      const remainingAmount = Math.max(totalAmount - paidAmount, 0);
 
-      const savedEnquiry = await storageUtils.saveEnquiry(formData);
+      let initialPaymentHistory: any[] = [];
 
-      console.log("🔴 Save result:", savedEnquiry);
+      if (isAdmin() && isConfirmed && paidAmount > 0) {
+        initialPaymentHistory = [
+          {
+            id: `PMT-${Date.now()}`,
+            date: formData.paidFessDate || new Date().toISOString(),
+            amount: String(paidAmount),
+            mode: formData.paymentMode,
+            method: formData.paymentMode === "Offline" ? formData.offlinePaymentType : undefined,
+            reference:
+              formData.paymentMode === "Online"
+                ? formData.onlineTransactionId
+                : formData.chequeNumber,
+            note: "Initial payment recorded at registration",
+            createdBy: "Admin",
+          },
+        ];
+      }
 
-      const newStats = await storageUtils.getStatistics();
-      setStats(newStats);
+      const enquiryToSave = {
+        ...formData,
+        totalFees: String(totalAmount),
+        paidFees: String(paidAmount),
+        remainingFees: String(remainingAmount),
+        paymentHistory: initialPaymentHistory,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      console.log("✅ Form submitted and saved:", savedEnquiry);
+      const savedEnquiry = await storageUtils.saveEnquiry(enquiryToSave as any);
       setToast({
         message: `✅ Enquiry added successfully! ID: ${savedEnquiry.id}`,
         type: "success",
       });
 
-      setTimeout(() => {
-        resetForm();
-      }, 1500);
+      if (isAdmin() && paidAmount > 0) {
+        setTimeout(() => navigate("/payment-details"), 1500);
+      } else {
+        setTimeout(() => resetForm(), 1500);
+      }
     } catch (error) {
-      console.error("🔴 FORM ERROR:", error);
       setToast({
         message:
           error instanceof Error
@@ -1105,16 +1086,10 @@ const AddEnquiry: React.FC = () => {
     }
   };
 
-  // Handle cancel
   const handleCancel = () => {
-    const hasData = Object.values(formData).some(
-      (value) => value.trim() !== ""
-    );
-    if (hasData) {
-      setShowCancelConfirm(true);
-    } else {
-      resetForm();
-    }
+    const hasData = Object.values(formData).some((value) => value.trim() !== "");
+    if (hasData) setShowCancelConfirm(true);
+    else resetForm();
   };
 
   const resetForm = () => {
@@ -1125,21 +1100,24 @@ const AddEnquiry: React.FC = () => {
       email: "",
       address: "",
       aadharNumber: "",
-      panNumber: "",
-      demateAccount1: "",
-      demateAccount2: "",
-      enquiryState: "",
+      enquiryDistrict: "",
       sourceOfEnquiry: "",
       interestedStatus: "",
       howDidYouKnow: "",
       customHowDidYouKnow: "",
       callBackDate: "",
-      depositInwardDate: "",
-      depositOutwardDate: "",
+      paidFessDate: "",
       status: "",
-      profession: "",
-      customProfession: "",
-      knowledgeOfShareMarket: "",
+      education: "",
+      customEducation: "",
+      knowledgeOfAndroid: "",
+      totalFees: "25000",      // keep default on reset
+      paidFees: "",
+      remainingFees: "25000",  // keep default on reset
+      paymentMode: "",
+      offlinePaymentType: "",
+      onlineTransactionId: "",
+      chequeNumber: "",
     });
     setErrors({});
     setTouched({});
@@ -1148,14 +1126,11 @@ const AddEnquiry: React.FC = () => {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // ------------------------------------------------------------------
   // Icons
+  // ------------------------------------------------------------------
   const UserIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1165,12 +1140,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const PhoneIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1180,12 +1150,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const EmailIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1195,12 +1160,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const CardIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1210,12 +1170,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const ClipboardIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1225,12 +1180,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const CalendarIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1240,12 +1190,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const StatusIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1255,12 +1200,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const BookIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1270,12 +1210,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const BriefcaseIcon = () => (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1288,13 +1223,11 @@ const AddEnquiry: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Statistics */}
+        {/* Header */}
         <div className="bg-white rounded-t-xl shadow-sm px-6 py-5 border-b border-gray-200">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Add New Enquiry
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">Add New Enquiry</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Fill in the details to create a new enquiry
               </p>
@@ -1323,22 +1256,20 @@ const AddEnquiry: React.FC = () => {
         >
           <div className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Column - Basic Information (Always Visible) */}
+              {/* Left Column */}
               <div className="space-y-5">
                 <div className="flex items-center gap-2 pb-3 border-b-2 border-green-500">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <UserIcon />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Basic Information
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
                 </div>
 
                 <Field
                   label="Full Name"
                   name="fullName"
                   value={formData.fullName}
-                  onChange={(value) => handleChange("fullName", value)}
+                  onChange={(v) => handleChange("fullName", v)}
                   onBlur={() => handleBlur("fullName")}
                   required
                   placeholder="Enter full name"
@@ -1351,7 +1282,7 @@ const AddEnquiry: React.FC = () => {
                   label="Mobile Number"
                   name="mobile"
                   value={formData.mobile}
-                  onChange={(value) => handleChange("mobile", value)}
+                  onChange={(v) => handleChange("mobile", v)}
                   onBlur={() => handleBlur("mobile")}
                   required
                   placeholder="Enter 10-digit mobile number"
@@ -1365,7 +1296,7 @@ const AddEnquiry: React.FC = () => {
                   label="Alternate Mobile Number"
                   name="alternateMobile"
                   value={formData.alternateMobile}
-                  onChange={(value) => handleChange("alternateMobile", value)}
+                  onChange={(v) => handleChange("alternateMobile", v)}
                   onBlur={() => handleBlur("alternateMobile")}
                   placeholder="Enter alternate number (optional)"
                   type="tel"
@@ -1378,7 +1309,7 @@ const AddEnquiry: React.FC = () => {
                   label="Email Address"
                   name="email"
                   value={formData.email}
-                  onChange={(value) => handleChange("email", value)}
+                  onChange={(v) => handleChange("email", v)}
                   onBlur={() => handleBlur("email")}
                   placeholder="example@email.com"
                   type="email"
@@ -1392,7 +1323,7 @@ const AddEnquiry: React.FC = () => {
                   label="Address"
                   name="address"
                   value={formData.address}
-                  onChange={(value) => handleChange("address", value)}
+                  onChange={(v) => handleChange("address", v)}
                   onBlur={() => handleBlur("address")}
                   placeholder="Enter complete address"
                   error={touched.address ? errors.address : ""}
@@ -1400,7 +1331,7 @@ const AddEnquiry: React.FC = () => {
                   rows={3}
                 />
 
-                {/* ✅ Additional fields shown only when Confirmed */}
+                {/* Document & Payment Details */}
                 {isConfirmed && (
                   <>
                     <div className="pt-4 border-t-2 border-gray-200">
@@ -1408,9 +1339,7 @@ const AddEnquiry: React.FC = () => {
                         <div className="p-2 bg-blue-100 rounded-lg">
                           <CardIcon />
                         </div>
-                        <h3 className="text-md font-semibold text-gray-900">
-                          Document Details
-                        </h3>
+                        <h3 className="text-md font-semibold text-gray-900">Document</h3>
                       </div>
                     </div>
 
@@ -1418,130 +1347,235 @@ const AddEnquiry: React.FC = () => {
                       label="Aadhar Number"
                       name="aadharNumber"
                       value={formData.aadharNumber}
-                      onChange={(value) => handleChange("aadharNumber", value)}
+                      onChange={(v) => handleChange("aadharNumber", v)}
                       onBlur={() => handleBlur("aadharNumber")}
                       placeholder="XXXX XXXX XXXX"
-                      required
                       error={touched.aadharNumber ? errors.aadharNumber : ""}
                       icon={<CardIcon />}
                       maxLength={14}
                     />
 
-                    <Field
-                      label="PAN Number"
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={(value) => handleChange("panNumber", value)}
-                      onBlur={() => handleBlur("panNumber")}
-                      placeholder="ABCDE1234F"
-                      error={touched.panNumber ? errors.panNumber : ""}
-                      icon={<CardIcon />}
-                      maxLength={10}
-                      required
-                    />
+                    {/* Payment Details - Admin Only */}
+                    {isAdmin() && (
+                      <>
+                        <div className="pt-2">
+                          <div className="flex items-center gap-2 pb-2">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <ClipboardIcon />
+                            </div>
+                            <h3 className="text-md font-semibold text-gray-900">
+                              Payment Details
+                            </h3>
+                          </div>
+                        </div>
 
-                    <Field
-                      label="Demat Account ID 1"
-                      name="demateAccount1"
-                      value={formData.demateAccount1}
-                      onChange={(value) =>
-                        handleChange("demateAccount1", value)
-                      }
-                      onBlur={() => handleBlur("demateAccount1")}
-                      placeholder="8-16 characters"
-                      required
-                      error={
-                        touched.demateAccount1 ? errors.demateAccount1 : ""
-                      }
-                      icon={<ClipboardIcon />}
-                      maxLength={16}
-                      minLength={8}
-                    />
+                        <Field
+                          label="Total Fees Amount"
+                          name="totalFees"
+                          value={formData.totalFees}
+                          onChange={(v) => handleChange("totalFees", v)}
+                          onBlur={() => handleBlur("totalFees")}
+                          required
+                          placeholder="Enter amount (e.g., 25000)"
+                          error={touched.totalFees ? errors.totalFees : ""}
+                          icon={<ClipboardIcon />}
+                        />
 
-                    <Field
-                      label="Demat Account ID 2"
-                      name="demateAccount2"
-                      value={formData.demateAccount2}
-                      onChange={(value) =>
-                        handleChange("demateAccount2", value)
-                      }
-                      onBlur={() => handleBlur("demateAccount2")}
-                      placeholder="8-16 characters (optional)"
-                      error={
-                        touched.demateAccount2 ? errors.demateAccount2 : ""
-                      }
-                      icon={<ClipboardIcon />}
-                      maxLength={16}
-                      minLength={8}
-                    />
+                        <Field
+                          label="Paid Fees Amount"
+                          name="paidFees"
+                          value={formData.paidFees}
+                          onChange={(v) => handleChange("paidFees", v)}
+                          onBlur={() => handleBlur("paidFees")}
+                          required
+                          placeholder="Enter amount paid"
+                          error={touched.paidFees ? errors.paidFees : ""}
+                          icon={<ClipboardIcon />}
+                        />
+
+                        <Field
+                          label="Remaining Fees Amount"
+                          name="remainingFees"
+                          value={formData.remainingFees}
+                          onChange={() => { }}
+                          placeholder="Auto-calculated"
+                          error={""}
+                          icon={<ClipboardIcon />}
+                          readOnly
+                          disabled
+                        />
+
+                        <DropdownField
+                          label="Payment Mode"
+                          name="paymentMode"
+                          value={formData.paymentMode}
+                          onChange={(v) => handleChange("paymentMode", v)}
+                          options={["Online", "Offline"]}
+                          required
+                          error={touched.paymentMode ? errors.paymentMode : ""}
+                          icon={<ClipboardIcon />}
+                        />
+
+                        {formData.paymentMode === "Online" && (
+                          <Field
+                            label="Online Transaction ID"
+                            name="onlineTransactionId"
+                            value={formData.onlineTransactionId}
+                            onChange={(v) => handleChange("onlineTransactionId", v)}
+                            onBlur={() => handleBlur("onlineTransactionId")}
+                            required
+                            placeholder="e.g., TXN12345ABC"
+                            error={
+                              touched.onlineTransactionId
+                                ? errors.onlineTransactionId
+                                : ""
+                            }
+                            icon={<ClipboardIcon />}
+                            maxLength={30}
+                          />
+                        )}
+
+                        {formData.paymentMode === "Offline" && (
+                          <>
+                            <DropdownField
+                              label="Offline Payment Type"
+                              name="offlinePaymentType"
+                              value={formData.offlinePaymentType}
+                              onChange={(v) => handleChange("offlinePaymentType", v)}
+                              options={["Cash", "Cheque"]}
+                              required
+                              error={
+                                touched.offlinePaymentType ? errors.offlinePaymentType : ""
+                              }
+                              icon={<ClipboardIcon />}
+                            />
+
+                            {formData.offlinePaymentType === "Cheque" && (
+                              <Field
+                                label="Cheque Number"
+                                name="chequeNumber"
+                                value={formData.chequeNumber}
+                                onChange={(v) => handleChange("chequeNumber", v)}
+                                onBlur={() => handleBlur("chequeNumber")}
+                                required
+                                placeholder="Enter cheque number"
+                                error={
+                                  touched.chequeNumber ? errors.chequeNumber : ""
+                                }
+                                icon={<ClipboardIcon />}
+                                maxLength={20}
+                              />
+                            )}
+                          </>
+                        )}
+
+                        <DateField
+                          label="Paid Fees Date"
+                          name="paidFessDate"
+                          value={formData.paidFessDate}
+                          required
+                          onChange={(v) => handleChange("paidFessDate", v)}
+                          error={touched.paidFessDate ? errors.paidFessDate : ""}
+                          icon={<CalendarIcon />}
+                          min={today}
+                        />
+                      </>
+                    )}
+
+                    {!isAdmin() && (
+                      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex gap-3">
+                          <svg
+                            className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <div>
+                            <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                              Payment Information
+                            </h4>
+                            <p className="text-xs text-amber-700 leading-relaxed">
+                              Payment details (fees, payment mode, transaction IDs) are managed
+                              by administrators only. Your enquiry will be processed and payment
+                              information will be handled by the admin team.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
 
-              {/* Right Column - Enquiry Details */}
+              {/* Right Column */}
               <div className="space-y-5">
                 <div className="flex items-center gap-2 pb-3 border-b-2 border-blue-500">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <ClipboardIcon />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Enquiry Details
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Enquiry Details</h2>
                 </div>
 
-                <DropdownField
-                  label="Select Enquiry State"
-                  name="enquiryState"
-                  value={formData.enquiryState}
-                  onChange={(value) => handleChange("enquiryState", value)}
+                <SearchableDropdownField
+                  label="Select Enquiry District"
+                  name="enquiryDistrict"
+                  value={formData.enquiryDistrict}
+                  onChange={(v) => handleChange("enquiryDistrict", v)}
+                  onBlur={() => handleBlur("enquiryDistrict")}
                   options={[
-                    "Andhra Pradesh",
-                    "Arunachal Pradesh",
-                    "Assam",
-                    "Bihar",
-                    "Chhattisgarh",
-                    "Goa",
-                    "Gujarat",
-                    "Haryana",
-                    "Himachal Pradesh",
-                    "Jharkhand",
-                    "Karnataka",
-                    "Kerala",
-                    "Madhya Pradesh",
-                    "Maharashtra",
-                    "Manipur",
-                    "Meghalaya",
-                    "Mizoram",
-                    "Nagaland",
-                    "Odisha",
-                    "Punjab",
-                    "Rajasthan",
-                    "Sikkim",
-                    "Tamil Nadu",
-                    "Telangana",
-                    "Tripura",
-                    "Uttar Pradesh",
-                    "Uttarakhand",
-                    "West Bengal",
-                    "Andaman and Nicobar Islands",
-                    "Chandigarh",
-                    "Dadra and Nagar Haveli and Daman and Diu",
-                    "Delhi",
-                    "Jammu and Kashmir",
-                    "Ladakh",
-                    "Lakshadweep",
-                    "Puducherry",
+                    "Ahmednagar",
+                    "Akola",
+                    "Amravati",
+                    "Aurangabad",
+                    "Beed",
+                    "Bhandara",
+                    "Buldhana",
+                    "Chandrapur",
+                    "Dhule",
+                    "Gadchiroli",
+                    "Gondia",
+                    "Hingoli",
+                    "Jalgaon",
+                    "Jalna",
+                    "Kolhapur",
+                    "Latur",
+                    "Mumbai City",
+                    "Mumbai Suburban",
+                    "Nagpur",
+                    "Nanded",
+                    "Nandurbar",
+                    "Nashik",
+                    "Osmanabad",
+                    "Palghar",
+                    "Parbhani",
+                    "Pune",
+                    "Raigad",
+                    "Ratnagiri",
+                    "Sangli",
+                    "Satara",
+                    "Sindhudurg",
+                    "Solapur",
+                    "Thane",
+                    "Wardha",
+                    "Washim",
+                    "Yavatmal",
                   ]}
-                  required
-                  error={touched.enquiryState ? errors.enquiryState : ""}
+                  error={touched.enquiryDistrict ? errors.enquiryDistrict : ""}
                   icon={<ClipboardIcon />}
+                  placeholder="Type district name..."
                 />
 
                 <DropdownField
                   label="Interested Status"
                   name="interestedStatus"
                   value={formData.interestedStatus}
-                  onChange={(value) => handleChange("interestedStatus", value)}
+                  onChange={(v) => handleChange("interestedStatus", v)}
                   options={[
                     "100% Interested",
                     "75% Interested",
@@ -1550,9 +1584,7 @@ const AddEnquiry: React.FC = () => {
                     "0% Interested",
                   ]}
                   required
-                  error={
-                    touched.interestedStatus ? errors.interestedStatus : ""
-                  }
+                  error={touched.interestedStatus ? errors.interestedStatus : ""}
                   icon={<ClipboardIcon />}
                 />
 
@@ -1560,9 +1592,9 @@ const AddEnquiry: React.FC = () => {
                   label="Status"
                   name="status"
                   value={formData.status}
-                  onChange={(value) => handleChange("status", value)}
+                  onChange={(v) => handleChange("status", v)}
                   options={["In Process", "Confirmed", "Pending"]}
-                  required={true}
+                  required
                   error={touched.status ? errors.status : ""}
                   icon={<StatusIcon />}
                 />
@@ -1571,14 +1603,13 @@ const AddEnquiry: React.FC = () => {
                   label="Call Back Date"
                   name="callBackDate"
                   value={formData.callBackDate}
-                  onChange={(value) => handleChange("callBackDate", value)}
+                  onChange={(v) => handleChange("callBackDate", v)}
                   error={touched.callBackDate ? errors.callBackDate : ""}
                   required
                   icon={<CalendarIcon />}
                   min={today}
                 />
 
-                {/* ✅ Additional fields shown only when Confirmed */}
                 {isConfirmed && (
                   <>
                     <div className="pt-4 border-t-2 border-gray-200">
@@ -1596,9 +1627,7 @@ const AddEnquiry: React.FC = () => {
                       label="Source of Enquiry"
                       name="sourceOfEnquiry"
                       value={formData.sourceOfEnquiry}
-                      onChange={(value) =>
-                        handleChange("sourceOfEnquiry", value)
-                      }
+                      onChange={(v) => handleChange("sourceOfEnquiry", v)}
                       options={[
                         "Phone Call",
                         "Walk-in",
@@ -1608,74 +1637,59 @@ const AddEnquiry: React.FC = () => {
                         "Advertisement",
                       ]}
                       required
-                      error={
-                        touched.sourceOfEnquiry ? errors.sourceOfEnquiry : ""
-                      }
+                      error={touched.sourceOfEnquiry ? errors.sourceOfEnquiry : ""}
                       icon={<ClipboardIcon />}
                     />
 
                     <DropdownField
-                      label="Profession"
-                      name="profession"
-                      value={formData.profession}
-                      onChange={(value) => {
-                        handleChange("profession", value);
-                        if (value !== "Other") {
-                          handleChange("customProfession", "");
-                        }
+                      label="Education"
+                      name="education"
+                      value={formData.education}
+                      onChange={(v) => {
+                        handleChange("education", v);
+                        if (v !== "Other") handleChange("customEducation", "");
                       }}
                       options={[
-                        "Farmer",
-                        "Business",
-                        "Traider",
-                        "Self-Employed",
-                        "Student",
-                        "Other",
+                        "BCA-I",
+                        "BCA-II",
+                        "BCA-III",
+                        "MCA-I",
+                        "MCA-II",
+                        "B.Tech-I",
+                        "B.Tech-II",
+                        "B.Tech-III",
+                        "B.Tech-IV",
+                        "Diploma-I",
+                        "Diploma-II",
+                        "Diploma-III",
                       ]}
-                      required={true}
-                      error={touched.profession ? errors.profession : ""}
+                      required
+                      error={touched.education ? errors.education : ""}
                       icon={<BriefcaseIcon />}
                     />
 
-                    {formData.profession === "Other" && (
+                    {formData.education === "Other" && (
                       <Field
-                        label="Specify Profession"
-                        name="customProfession"
-                        value={formData.customProfession}
-                        onChange={(value) =>
-                          handleChange("customProfession", value)
-                        }
-                        onBlur={() => handleBlur("customProfession")}
+                        label="Specify Education"
+                        name="customEducation"
+                        value={formData.customEducation}
+                        onChange={(v) => handleChange("customEducation", v)}
+                        onBlur={() => handleBlur("customEducation")}
                         required
-                        placeholder="Enter your profession"
-                        error={
-                          touched.customProfession
-                            ? errors.customProfession
-                            : ""
-                        }
+                        placeholder="Enter your Education"
+                        error={touched.customEducation ? errors.customEducation : ""}
                         icon={<BriefcaseIcon />}
                       />
                     )}
 
                     <DropdownField
-                      label="Knowledge of Share Market"
-                      name="knowledgeOfShareMarket"
-                      value={formData.knowledgeOfShareMarket}
-                      onChange={(value) =>
-                        handleChange("knowledgeOfShareMarket", value)
-                      }
-                      options={[
-                        "Fresher",
-                        "Intermediate",
-                        "Advanced",
-                        "Professional",
-                      ]}
-                      required={true}
-                      error={
-                        touched.knowledgeOfShareMarket
-                          ? errors.knowledgeOfShareMarket
-                          : ""
-                      }
+                      label="Knowledge of Domain"
+                      name="knowledgeOfAndroid"
+                      value={formData.knowledgeOfAndroid}
+                      onChange={(v) => handleChange("knowledgeOfAndroid", v)}
+                      options={["Fresher", "Intermediate", "Advanced", "Professional"]}
+                      required
+                      error={touched.knowledgeOfAndroid ? errors.knowledgeOfAndroid : ""}
                       icon={<BookIcon />}
                     />
 
@@ -1683,11 +1697,9 @@ const AddEnquiry: React.FC = () => {
                       label="How did you know about us?"
                       name="howDidYouKnow"
                       value={formData.howDidYouKnow}
-                      onChange={(value) => {
-                        handleChange("howDidYouKnow", value);
-                        if (value !== "Other") {
-                          handleChange("customHowDidYouKnow", "");
-                        }
+                      onChange={(v) => {
+                        handleChange("howDidYouKnow", v);
+                        if (v !== "Other") handleChange("customHowDidYouKnow", "");
                       }}
                       options={[
                         "Google Search",
@@ -1708,9 +1720,7 @@ const AddEnquiry: React.FC = () => {
                         label="Specify Source"
                         name="customHowDidYouKnow"
                         value={formData.customHowDidYouKnow}
-                        onChange={(value) =>
-                          handleChange("customHowDidYouKnow", value)
-                        }
+                        onChange={(v) => handleChange("customHowDidYouKnow", v)}
                         onBlur={() => handleBlur("customHowDidYouKnow")}
                         required
                         placeholder="Enter how you knew about us"
@@ -1722,40 +1732,6 @@ const AddEnquiry: React.FC = () => {
                         icon={<ClipboardIcon />}
                       />
                     )}
-
-                    <DateField
-                      label="Deposit Inward Date"
-                      name="depositInwardDate"
-                      value={formData.depositInwardDate}
-                      required
-                      onChange={(value) =>
-                        handleChange("depositInwardDate", value)
-                      }
-                      error={
-                        touched.depositInwardDate
-                          ? errors.depositInwardDate
-                          : ""
-                      }
-                      icon={<CalendarIcon />}
-                      min={today}
-                    />
-
-                    <DateField
-                      label="Deposit Outward Date"
-                      name="depositOutwardDate"
-                      value={formData.depositOutwardDate}
-                      onChange={(value) =>
-                        handleChange("depositOutwardDate", value)
-                      }
-                      error={
-                        touched.depositOutwardDate
-                          ? errors.depositOutwardDate
-                          : ""
-                      }
-                      required
-                      icon={<CalendarIcon />}
-                      min={formData.depositInwardDate || today}
-                    />
                   </>
                 )}
               </div>
@@ -1780,45 +1756,34 @@ const AddEnquiry: React.FC = () => {
                     Important Note
                   </h4>
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    {isConfirmed ? (
-                      <>
-                        All fields are now visible as status is{" "}
-                        <strong>Confirmed</strong>. Please fill in all required
-                        details including document information and deposit
-                        dates.
-                      </>
-                    ) : (
-                      <>
-                        Basic information is required. Select status as{" "}
-                        <strong>Confirmed</strong> to access additional fields
-                        like Aadhar, PAN, Demat accounts, and deposit dates.
-                      </>
-                    )}
+                    {isConfirmed
+                      ? isAdmin()
+                        ? "Additional fields are visible since status is Confirmed. Complete Document and Payment Details (including Mode, Cash/Cheque, and Paid Fees Date)."
+                        : "Status is Confirmed. Document information is required. Payment details will be managed by administrators."
+                      : "Basic information is required. Select Confirmed to access additional document fields" +
+                      (isAdmin() ? " and payment details" : "") +
+                      "."}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="px-6 py-4 bg-gray-50 rounded-b-xl border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
             <button
               type="button"
               onClick={handleCancel}
-              className="w-full sm:w-auto order-2 sm:order-1 px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg
-              hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200
-              transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto order-2 sm:order-1 px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
               Cancel
             </button>
+
             <div className="flex gap-3 w-full sm:w-auto order-1 sm:order-2">
               <button
                 type="submit"
-                className="flex-1 sm:flex-none px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg
-                hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400
-                transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none px-6 py-2.5 bg-sky-500 text-white font-medium rounded-lg hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -1854,7 +1819,7 @@ const AddEnquiry: React.FC = () => {
         </form>
       </div>
 
-      {/* Toast Notification */}
+      {/* Toast & Modals */}
       {toast && (
         <Toast
           message={toast.message}
@@ -1863,7 +1828,6 @@ const AddEnquiry: React.FC = () => {
         />
       )}
 
-      {/* Cancel Confirmation Modal */}
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
@@ -1884,9 +1848,7 @@ const AddEnquiry: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Discard Changes?
-                </h3>
+                <h3 className="text-lg font-bold text-gray-900">Discard Changes?</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   All unsaved changes will be lost
                 </p>
@@ -1910,7 +1872,6 @@ const AddEnquiry: React.FC = () => {
         </div>
       )}
 
-      {/* Duplicate Warning Modal */}
       {showDuplicateWarning && duplicateEnquiry && (
         <DuplicateWarningModal
           existingEnquiry={duplicateEnquiry}

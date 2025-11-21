@@ -157,7 +157,7 @@ const ImportAdvertisement: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Upload className="w-8 h-8 text-green-600" />
+            <Upload className="w-8 h-8 text-sky-600" />
             Import Advertisement Enquiries
           </h1>
           <p className="text-gray-600 mt-2">
@@ -213,7 +213,7 @@ const ImportAdvertisement: React.FC = () => {
         </div> */}
         {/* Upload Section */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-green-500 transition-all duration-300">
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-sky-500 transition-all duration-300">
             <input
               id="file-input"
               type="file"
@@ -225,8 +225,8 @@ const ImportAdvertisement: React.FC = () => {
               htmlFor="file-input"
               className="cursor-pointer flex flex-col items-center"
             >
-              <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mb-4">
-                <FileSpreadsheet className="w-10 h-10 text-green-600" />
+              <div className="w-20 h-20 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
+                <FileSpreadsheet className="w-10 h-10 text-sky-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 {file ? file.name : "Choose Excel File"}
@@ -241,9 +241,9 @@ const ImportAdvertisement: React.FC = () => {
           </div>
 
           {file && (
-            <div className="mt-6 flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200">
+            <div className="mt-6 flex items-center justify-between p-4 bg-sky-50 rounded-xl border border-sky-200">
               <div className="flex items-center gap-3">
-                <FileSpreadsheet className="w-6 h-6 text-green-600" />
+                <FileSpreadsheet className="w-6 h-6 text-sky-600" />
                 <div>
                   <p className="font-semibold text-gray-900">{file.name}</p>
                   <p className="text-sm text-gray-600">
@@ -264,7 +264,7 @@ const ImportAdvertisement: React.FC = () => {
             <button
               onClick={handleImport}
               disabled={!file || importing}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-105"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 to-blue-600 text-white rounded-xl hover:from-sky-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-105"
             >
               {importing ? (
                 <>
@@ -289,17 +289,17 @@ const ImportAdvertisement: React.FC = () => {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="p-6 bg-green-50 rounded-xl border-l-4 border-green-500">
+              <div className="p-6 bg-sky-50 rounded-xl border-l-4 border-sky-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-green-600 font-medium">
+                    <p className="text-sm text-sky-600 font-medium">
                       Successfully Imported
                     </p>
-                    <p className="text-3xl font-bold text-green-700 mt-1">
+                    <p className="text-3xl font-bold text-sky-700 mt-1">
                       {importResult.success}
                     </p>
                   </div>
-                  <CheckCircle className="w-12 h-12 text-green-500" />
+                  <CheckCircle className="w-12 h-12 text-sky-500" />
                 </div>
               </div>
 
@@ -367,7 +367,7 @@ const Toast: React.FC<{
     <div
       className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl animate-slide-in ${
         type === "success"
-          ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+          ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white"
           : "bg-gradient-to-r from-red-600 to-pink-600 text-white"
       }`}
     >

@@ -2,14 +2,24 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading, currentUser } = useAuth();
+type ProtectedRouteProps = {
+  /** Require admin role */
+  adminOnly?: boolean;
+  /** Specific permission required (must match Firestore field) */
+  permission?: string;
+  /** Elements rendered inside when using as a wrapper */
+  children?: React.ReactNode;
+};
 
-  console.log("ProtectedRoute - isLoading:", isLoading);
-  console.log("ProtectedRoute - isAuthenticated:", isAuthenticated);
-  console.log("ProtectedRoute - currentUser:", currentUser);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  adminOnly = false,
+  permission,
+  children,
+}) => {
+  const { isAuthenticated, isLoading, currentUser, isAdmin, hasPermission } =
+    useAuth();
 
-  // Show loading screen while checking auth
+  // 1️⃣ Show a loading spinner until Firebase/user data ready
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -21,14 +31,31 @@ const ProtectedRoute: React.FC = () => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // 2️⃣ Check authentication
   if (!isAuthenticated || !currentUser) {
-    console.log("❌ Not authenticated, redirecting to /login");
+    console.warn("ProtectedRoute: not authenticated → redirecting /login");
     return <Navigate to="/login" replace />;
   }
 
-  console.log("✅ Authenticated, rendering protected content");
-  return <Outlet />;
+  // 3️⃣ Admin‑only check
+  const isAdminUser =
+    typeof isAdmin === "function" ? isAdmin() : currentUser.role === "admin";
+
+  if (adminOnly && !isAdminUser) {
+    console.warn("ProtectedRoute: user not admin → redirecting /");
+    return <Navigate to="/" replace />;
+  }
+
+  // 4️⃣ Permission check
+  if (permission && !hasPermission(permission)) {
+    console.warn(
+      `ProtectedRoute: missing permission "${permission}" → redirect /unauthorized`
+    );
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // 5️⃣ All clear → render children (wrapper usage) or outlet (nested routes)
+  return <>{children ?? <Outlet />}</>;
 };
 
 export default ProtectedRoute;

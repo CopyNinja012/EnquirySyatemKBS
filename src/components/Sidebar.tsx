@@ -12,26 +12,26 @@ import {
   FaUsersCog,
   FaSignOutAlt,
   FaBell,
+  FaUserCircle,
 } from "react-icons/fa";
 import {
-  TrendingUp,
-  Shield,
-  User,
   Upload,
   FileSpreadsheet,
+  Shield,
 } from "lucide-react";
 import { storageUtils } from "../utils/localStorage";
+import { advertisementStorage } from "../utils/advertisementStorage";
 import { useAuth } from "../contexts/AuthContext";
 import { useSidebar } from "../contexts/SidebarContext";
-import { advertisementStorage } from "../utils/advertisementStorage";
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, isAdmin, logout } = useAuth();
+  const { currentUser, isAdmin, hasPermission, logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [statistics, setStatistics] = useState({
+  const [stats, setStats] = useState({
     totalEnquiries: 0,
     todayFollowUps: 0,
     allFollowUps: 0,
@@ -39,176 +39,189 @@ const Sidebar: React.FC = () => {
   });
 
   useEffect(() => {
-    loadStatistics();
+    const loadStats = async () => {
+      try {
+        const all = await storageUtils.getAllEnquiries();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todayFollowUps = all.filter(
+          (e) => e.callBackDate && isToday(e.callBackDate)
+        ).length;
+        const allFollowUps = all.filter((e) => {
+          if (!e.callBackDate) return false;
+          const d = new Date(e.callBackDate);
+          d.setHours(0, 0, 0, 0);
+          return d >= today;
+        }).length;
+        const advStats = await advertisementStorage.getStatistics();
+
+        setStats({
+          totalEnquiries: all.length,
+          todayFollowUps,
+          allFollowUps,
+          advertisementTotal: advStats.total,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadStats();
   }, [location.pathname]);
 
-  const isToday = (dateString: string): boolean => {
-    if (!dateString) return false;
-    const date = new Date(dateString);
-    const today = new Date();
+  const isToday = (dStr: string) => {
+    const d = new Date(dStr);
+    const t = new Date();
     return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
+      d.getDate() === t.getDate() &&
+      d.getMonth() === t.getMonth() &&
+      d.getFullYear() === t.getFullYear()
     );
   };
 
-  const loadStatistics = async () => {
-    try {
-      const allEnquiries = storageUtils.getAllEnquiries();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+  const linkStyle = (path: string) =>
+    `flex items-center justify-between p-3 rounded-lg transition-all ${
+      location.pathname === path
+        ? "bg-gradient-to-r from-sky-50 to-sky-100 border-l-4 border-sky-500 text-sky-700 font-semibold shadow-sm"
+        : "hover:bg-gradient-to-r hover:from-sky-50 hover:to-sky-100 hover:border-l-4 hover:border-sky-400 hover:text-sky-600 text-gray-700"
+    }`;
 
-      const stats = {
-        totalEnquiries: (await allEnquiries).length,
-        todayFollowUps: (await allEnquiries).filter((e) =>
-          isToday(e.callBackDate)
-        ).length,
-        allFollowUps: (await allEnquiries).filter((e) => {
-          if (!e.callBackDate) return false;
-          const callBackDate = new Date(e.callBackDate);
-          callBackDate.setHours(0, 0, 0, 0);
-          return callBackDate >= today;
-        }).length,
-        advertisementTotal: (await advertisementStorage.getStatistics()).total,
-      };
-
-      setStatistics(stats);
-    } catch (error) {
-      console.error("Error loading statistics:", error);
-    }
-  };
-
-  const handleLogout = () => {
-    setShowLogoutConfirm(true);
-  };
-
+  const handleLogout = () => setShowLogoutConfirm(true);
   const confirmLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const linkClasses = (path: string) =>
-    `flex items-center justify-between p-3 rounded-lg transition-all duration-300 group ${
-      location.pathname === path
-        ? "bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 text-green-700 font-semibold shadow-sm"
-        : "hover:bg-gradient-to-r hover:from-green-50 hover:to-green-100 hover:border-l-4 hover:border-green-400 hover:text-green-600 text-gray-700"
-    }`;
-
-  const menuItems = [
+  // ---------------------------------------
+  // MENU ITEMS
+  // ---------------------------------------
+  const allItems = [
     {
       path: "/",
-      icon: <FaTachometerAlt className="w-5 h-5" />,
       label: "Dashboard",
-      badge: null,
-      show: true,
+      permission: null,
+      icon: <FaTachometerAlt />,
       group: "main",
     },
     {
       path: "/add-enquiry",
-      icon: <FaPlusCircle className="w-5 h-5" />,
-      label: "Add New Enquiry",
-      badge: null,
-      highlight: true,
-      show: true,
+      label: "Add Enquiry",
+      permission: "Add Enquiry",
+      icon: <FaPlusCircle />,
       group: "main",
     },
     {
       path: "/search-enquiry",
-      icon: <FaSearch className="w-5 h-5" />,
       label: "Search Enquiry",
-      badge: null,
-      show: true,
+      permission: "Search Enquiry",
+      icon: <FaSearch />,
       group: "main",
     },
     {
       path: "/view-enquiry",
-      icon: <FaEye className="w-5 h-5" />,
-      label: "View Enquiries",
-      badge: statistics.totalEnquiries > 0 ? statistics.totalEnquiries : null,
-      show: true,
+      label: "View Enquiry",
+      permission: "View Enquiry",
+      icon: <FaEye />,
+      group: "main",
+      badge: stats.totalEnquiries,
+    },
+
+    // ➕ NEW Payment Details entry
+    {
+      path: "/payment-details",
+      label: "Payment Details",
+      permission: "View Payment Details",
+      icon: <FaCheckCircle />,
       group: "main",
     },
+
     {
       path: "/today-followups",
-      icon: <FaCalendarCheck className="w-5 h-5" />,
-      label: "Today's Follow Ups",
-      badge: statistics.todayFollowUps > 0 ? statistics.todayFollowUps : null,
-      urgent: statistics.todayFollowUps > 0,
-      show: true,
+      label: "Today's Follow-ups",
+      permission: "Today's Follow-ups",
+      icon: <FaCalendarCheck />,
       group: "followups",
+      badge: stats.todayFollowUps,
+      urgent: stats.todayFollowUps > 0,
     },
     {
       path: "/all-followups",
-      icon: <FaCheckCircle className="w-5 h-5" />,
-      label: "All Follow Ups",
-      badge: statistics.allFollowUps > 0 ? statistics.allFollowUps : null,
-      show: true,
+      label: "All Follow-ups",
+      permission: "All Follow-ups",
+      icon: <FaCheckCircle />,
       group: "followups",
-    },
-    {
-      path: "/user-management",
-      icon: <FaUsersCog className="w-5 h-5" />,
-      label: "User Management",
-      badge: null,
-      show: isAdmin(),
-      adminOnly: true,
-      group: "admin",
+      badge: stats.allFollowUps,
     },
     {
       path: "/import-advertisement",
-      icon: <Upload className="w-5 h-5" />,
       label: "Import Advertisement",
-      badge: null,
-      show: true,
+      permission: "Import Advertisement",
+      icon: <Upload />,
       group: "advertisement",
     },
     {
       path: "/advertisement-enquiries",
-      icon: <FileSpreadsheet className="w-5 h-5" />,
       label: "Advertisement Data",
-      badge:
-        statistics.advertisementTotal > 0
-          ? statistics.advertisementTotal
-          : null,
-      show: true,
+      permission: "View Advertisement Data",
+      icon: <FileSpreadsheet />,
       group: "advertisement",
+      badge: stats.advertisementTotal,
     },
     {
       path: "/search-advertisement",
-      icon: <FaSearch className="w-5 h-5" />,
       label: "Search Advertisement",
-      badge: null,
-      show: true,
+      permission: "Search Advertisement",
+      icon: <FaSearch />,
       group: "advertisement",
     },
-  ].filter((item) => item.show);
+    {
+      path: "/admin-profile",
+      label: "Profile",
+      adminOnly: true,
+      icon: <FaUserCircle />,
+      group: "admin",
+    },
+    {
+      path: "/user-management",
+      label: "User Management",
+      adminOnly: true,
+      icon: <FaUsersCog />,
+      group: "admin",
+    },
+  ];
 
-  const mainMenuItems = menuItems.filter((item) => item.group === "main");
-  const followUpItems = menuItems.filter((item) => item.group === "followups");
-  const adminItems = menuItems.filter((item) => item.group === "admin");
-  const advertisementItems = menuItems.filter(
-    (item) => item.group === "advertisement"
-  );
+  // visible items according to permissions
+  const visible = allItems.filter((i) => {
+    if (i.adminOnly) return isAdmin();
+    if (!i.permission) return true;
+    return hasPermission(i.permission);
+  });
 
-  const getUserInitials = () => {
-    if (!currentUser?.fullName) return "U";
-    const names = currentUser.fullName.split(" ");
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return currentUser.fullName.substring(0, 2).toUpperCase();
-  };
+  const menuMain = visible.filter((i) => i.group === "main");
+  const menuFollow = visible.filter((i) => i.group === "followups");
+  const menuAdv = visible.filter((i) => i.group === "advertisement");
+  const menuAdmin = visible.filter((i) => i.group === "admin");
 
+  const initials =
+    currentUser?.fullName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
+  // ---------------------------------------
+  // RENDER
+  // ---------------------------------------
   return (
     <>
       <aside
         className={`${
           isCollapsed ? "w-20" : "w-64"
-        } bg-white shadow-xl fixed left-0 top-0 h-screen flex flex-col border-r border-gray-200 transition-all duration-300 z-30`}
+        } bg-white border-r border-gray-200 shadow-lg fixed h-screen left-0 top-0 flex flex-col transition-all duration-300`}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           {!isCollapsed && (
             <div>
               <h2 className="text-lg font-bold text-gray-800">EMS</h2>
@@ -217,7 +230,7 @@ const Sidebar: React.FC = () => {
           )}
           <button
             onClick={toggleSidebar}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? (
@@ -228,164 +241,100 @@ const Sidebar: React.FC = () => {
           </button>
         </div>
 
-        {/* User Role Badge */}
+        {/* Role Box - Conditional based on user role */}
         {!isCollapsed && (
-          <div className="px-4 pt-3 pb-2">
-            <div
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                isAdmin()
-                  ? "bg-purple-50 border border-purple-200"
-                  : "bg-blue-50 border border-blue-200"
-              }`}
-            >
-              {isAdmin() ? (
-                <>
-                  <Shield size={16} className="text-purple-600 flex-shrink-0" />
-                  <span className="text-xs font-semibold text-purple-700">
+          <div className="flex flex-col items-center px-4 my-4">
+            {isAdmin() ? (
+              // Admin view - Full box with Shield and Administrator text
+              <div className="bg-purple-50 border border-purple-200 rounded-xl w-full flex flex-col items-center py-5">
+                <div className="flex items-center gap-2">
+                  <Shield size={22} className="text-purple-600" />
+                  <span className="text-base font-bold text-purple-700">
                     Administrator
                   </span>
-                </>
-              ) : (
-                <>
-                  <User size={16} className="text-blue-600 flex-shrink-0" />
-                  <span className="text-xs font-semibold text-blue-700">
-                    User Access
-                  </span>
-                </>
-              )}
-            </div>
+                </div>
+                <p className="text-base font-bold text-black mt-1">
+                  Kali Byte Solutions
+                </p>
+              </div>
+            ) : (
+              // User view - Compact box with only company name
+              <div className="bg-purple-50 border border-purple-200 rounded-lg w-full flex items-center justify-center py-3 px-4">
+                <p className="text-base font-bold text-black">
+                  Kali Byte Solutions
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Menu - Scrollable */}
+        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          {/* Main Menu Items */}
-          <ul className="flex flex-col space-y-1">
-            {!isCollapsed && (
-              <li className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Main Menu
-              </li>
-            )}
-            {mainMenuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={linkClasses(item.path)}
-                  title={isCollapsed ? item.label : ""}
-                >
-                  <div className="flex items-center flex-1 min-w-0">
-                    <span
-                      className={`${
-                        isCollapsed ? "mx-auto" : "mr-3"
-                      } flex-shrink-0`}
-                    >
-                      {item.icon}
-                    </span>
-                    {!isCollapsed && (
-                      <span className="truncate">{item.label}</span>
+          {/* MAIN */}
+          {menuMain.length > 0 && (
+            <ul className="mb-2">
+              {!isCollapsed && (
+                <li className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase">
+                  Main Menu
+                </li>
+              )}
+              {menuMain.map((m) => (
+                <li key={m.path}>
+                  <Link
+                    to={m.path}
+                    className={linkStyle(m.path)}
+                    title={isCollapsed ? m.label : ""}
+                  >
+                    <div className="flex items-center flex-1">
+                      <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
+                        {m.icon}
+                      </span>
+                      {!isCollapsed && <span className="truncate">{m.label}</span>}
+                    </div>
+                    {!isCollapsed && m.badge && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500 text-white">
+                        {m.badge}
+                      </span>
                     )}
-                  </div>
-
-                  {!isCollapsed && item.badge !== null && (
-                    <span
-                      className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                        item.highlight
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {!isCollapsed && (
-            <div className="my-3 border-t border-gray-200"></div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
 
-          {/* Follow-ups Menu Items */}
-          <ul className="flex flex-col space-y-1">
-            {!isCollapsed && (
-              <li className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                <FaBell size={12} />
-                Follow-ups
-              </li>
-            )}
-            {followUpItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={linkClasses(item.path)}
-                  title={isCollapsed ? item.label : ""}
-                >
-                  <div className="flex items-center flex-1 min-w-0">
-                    <span
-                      className={`${
-                        isCollapsed ? "mx-auto" : "mr-3"
-                      } flex-shrink-0`}
-                    >
-                      {item.icon}
-                    </span>
-                    {!isCollapsed && (
-                      <span className="truncate">{item.label}</span>
-                    )}
-                  </div>
-
-                  {!isCollapsed && item.badge !== null && (
-                    <span
-                      className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                        item.urgent
-                          ? "bg-orange-500 text-white animate-pulse"
-                          : "bg-blue-500 text-white"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {/* Advertisement Menu Items */}
-          {advertisementItems.length > 0 && (
+          {/* FOLLOW UPS */}
+          {menuFollow.length > 0 && (
             <>
-              {!isCollapsed && (
-                <div className="my-3 border-t border-gray-200"></div>
-              )}
-              <ul className="flex flex-col space-y-1">
+              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              <ul>
                 {!isCollapsed && (
-                  <li className="px-2 py-1 text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2">
-                    <FileSpreadsheet size={12} />
-                    Advertisement
+                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                    <FaBell size={12} />
+                    Follow‑ups
                   </li>
                 )}
-                {advertisementItems.map((item) => (
-                  <li key={item.path}>
+                {menuFollow.map((m) => (
+                  <li key={m.path}>
                     <Link
-                      to={item.path}
-                      className={linkClasses(item.path)}
-                      title={isCollapsed ? item.label : ""}
+                      to={m.path}
+                      className={linkStyle(m.path)}
+                      title={isCollapsed ? m.label : ""}
                     >
-                      <div className="flex items-center flex-1 min-w-0">
-                        <span
-                          className={`${
-                            isCollapsed ? "mx-auto" : "mr-3"
-                          } flex-shrink-0`}
-                        >
-                          {item.icon}
+                      <div className="flex items-center flex-1">
+                        <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
+                          {m.icon}
                         </span>
-                        {!isCollapsed && (
-                          <span className="truncate">{item.label}</span>
-                        )}
+                        {!isCollapsed && <span>{m.label}</span>}
                       </div>
-
-                      {!isCollapsed && item.badge !== null && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 bg-blue-500 text-white">
-                          {item.badge}
+                      {!isCollapsed && m.badge && (
+                        <span
+                          className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            m.urgent
+                              ? "bg-orange-500 text-white animate-pulse"
+                              : "bg-sky-500 text-white"
+                          }`}
+                        >
+                          {m.badge}
                         </span>
                       )}
                     </Link>
@@ -395,40 +344,35 @@ const Sidebar: React.FC = () => {
             </>
           )}
 
-          {/* Admin Menu Items */}
-          {adminItems.length > 0 && (
+          {/* ADVERTISEMENT */}
+          {menuAdv.length > 0 && (
             <>
-              {!isCollapsed && (
-                <div className="my-3 border-t border-gray-200"></div>
-              )}
-              <ul className="flex flex-col space-y-1">
+              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              <ul>
                 {!isCollapsed && (
-                  <li className="px-2 py-1 text-xs font-semibold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                    <Shield size={12} />
-                    Administration
+                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                    <FileSpreadsheet size={12} />
+                    Advertisement
                   </li>
                 )}
-                {adminItems.map((item) => (
-                  <li key={item.path}>
+                {menuAdv.map((m) => (
+                  <li key={m.path}>
                     <Link
-                      to={item.path}
-                      className={linkClasses(item.path)}
-                      title={isCollapsed ? item.label : ""}
+                      to={m.path}
+                      className={linkStyle(m.path)}
+                      title={isCollapsed ? m.label : ""}
                     >
-                      <div className="flex items-center flex-1 min-w-0">
-                        <span
-                          className={`${
-                            isCollapsed ? "mx-auto" : "mr-3"
-                          } flex-shrink-0 ${
-                            item.adminOnly ? "text-purple-600" : ""
-                          }`}
-                        >
-                          {item.icon}
+                      <div className="flex items-center">
+                        <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
+                          {m.icon}
                         </span>
-                        {!isCollapsed && (
-                          <span className="truncate">{item.label}</span>
-                        )}
+                        {!isCollapsed && <span>{m.label}</span>}
                       </div>
+                      {!isCollapsed && m.badge && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500 text-white">
+                          {m.badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 ))}
@@ -436,144 +380,92 @@ const Sidebar: React.FC = () => {
             </>
           )}
 
-          {/* Quick Stats */}
-          {!isCollapsed && (
-            <div className="mt-4 p-3 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-green-200">
-              <h3 className="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <TrendingUp size={14} className="text-green-600" />
-                Quick Stats
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Total Enquiries</span>
-                  <span className="text-xs font-bold text-gray-800">
-                    {statistics.totalEnquiries}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">
-                    Today's Follow-ups
-                  </span>
-                  <span
-                    className={`text-xs font-bold ${
-                      statistics.todayFollowUps > 0
-                        ? "text-orange-600 animate-pulse"
-                        : "text-gray-800"
-                    }`}
-                  >
-                    {statistics.todayFollowUps}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">All Follow-ups</span>
-                  <span className="text-xs font-bold text-gray-800">
-                    {statistics.allFollowUps}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span className="text-xs text-gray-600">Advertisement</span>
-                  <span className="text-xs font-bold text-blue-600">
-                    {statistics.advertisementTotal}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {/* ADMIN AREA */}
+          {menuAdmin.length > 0 && (
+            <>
+              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              <ul>
+                {!isCollapsed && (
+                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                    <Shield size={12} />
+                    Administrator
+                  </li>
+                )}
+                {menuAdmin.map((m) => (
+                  <li key={m.path}>
+                    <Link
+                      to={m.path}
+                      className={linkStyle(m.path)}
+                      title={isCollapsed ? m.label : ""}
+                    >
+                      <div className="flex items-center">
+                        <span
+                          className={`${isCollapsed ? "mx-auto" : "mr-3"} text-sky-600`}
+                        >
+                          {m.icon}
+                        </span>
+                        {!isCollapsed && <span>{m.label}</span>}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </nav>
 
-        {/* User Profile Section */}
+        {/* Bottom user box */}
         {!isCollapsed && (
-          <div className="p-4 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+          <div className="p-4 border-t border-gray-100 bg-gray-50">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
-                {getUserInitials()}
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-sky-600 rounded-full flex items-center justify-center text-white font-bold">
+                {initials}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">
                   {currentUser?.fullName || "User"}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  @{currentUser?.username || "username"}
+                  @{currentUser?.username}
                 </p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium border border-red-200"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-200 text-sm font-medium"
             >
               <FaSignOutAlt className="w-4 h-4" />
               Logout
             </button>
           </div>
         )}
-
-        {/* Collapsed User Profile */}
-        {isCollapsed && (
-          <div className="p-2 border-t border-gray-100 bg-gray-50 flex-shrink-0">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
-                {getUserInitials()}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                title="Logout"
-              >
-                <FaSignOutAlt className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div
-          className={`${
-            isCollapsed ? "p-2" : "p-4"
-          } text-gray-400 text-xs border-t border-gray-100 bg-gray-50 flex-shrink-0`}
-        >
-          {isCollapsed ? (
-            <div className="text-center">
-              <TrendingUp size={16} className="mx-auto text-green-500" />
-            </div>
-          ) : (
-            <div>
-              <p className="font-medium text-gray-600 mb-1">© 2025 EMS</p>
-              <p className="text-gray-400">By Kali-Byte Solutions</p>
-            </div>
-          )}
-        </div>
       </aside>
 
-      {/* Logout Confirmation Modal */}
+      {/* Logout confirmation modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-            <div className="flex items-center gap-4 mb-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-red-100 rounded-full">
                 <FaSignOutAlt className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Confirm Logout
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className="text-lg font-bold">Confirm Logout</h3>
+                <p className="text-sm text-gray-600">
                   Are you sure you want to logout?
                 </p>
               </div>
             </div>
-            <p className="text-gray-700 mb-6 text-sm">
-              You will be redirected to the login page.
-            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-700"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
                 Logout
               </button>

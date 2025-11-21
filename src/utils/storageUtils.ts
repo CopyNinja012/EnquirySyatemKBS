@@ -1,33 +1,81 @@
-import { firestoreDB } from './database';
+import { firestoreDB } from "./database";
+
+/* ─────────────────────────────────────────────
+   Types
+─────────────────────────────────────────────── */
+
+export interface PaymentHistoryItem {
+  id: string;
+  date: string;                 // ISO string or yyyy-mm-dd
+  amount: string;               // keep as string (form stores string)
+  mode: "Online" | "Offline";
+  method?: "Cash" | "Cheque";
+  reference?: string;           // txn id or cheque/cash ref
+  note?: string;
+  createdBy?: string;
+}
 
 export interface EnquiryData {
   id: string;
+
+  // Basic info
   fullName: string;
   mobile: string;
   alternateMobile: string;
   email: string;
   address: string;
+
+  // Document
   aadharNumber: string;
-  panNumber: string;
-  demateAccount1: string;
-  demateAccount2: string;
-  enquiryState: string;
+
+  // Enquiry & meta
+  enquiryDistrict: string;
   sourceOfEnquiry: string;
   interestedStatus: string;
   howDidYouKnow: string;
   customHowDidYouKnow: string;
-  callBackDate: string;
-  depositInwardDate: string;
-  depositOutwardDate: string;
-  status: string;
-  profession: string;
-  customProfession: string;
-  knowledgeOfShareMarket: string;
+  callBackDate: string;    // yyyy-mm-dd
+  paidFessDate: string;    // yyyy-mm-dd (note spelling as in your form)
+  status: string;          // "In Process" | "Confirmed" | "Pending"
+  education: string;
+  customEducation: string;
+  knowledgeOfAndroid: string;
+
+  // Payment summary
+  totalFees: string;
+  paidFees: string;
+  remainingFees: string;
+  paymentMode: "" | "Online" | "Offline";
+  offlinePaymentType: "" | "Cash" | "Cheque";
+  onlineTransactionId: string;
+  chequeNumber: string;
+
+  // Per‑enquiry payment history
+  paymentHistory?: PaymentHistoryItem[];
+
+  // System fields
   createdAt: string;
   updatedAt: string;
 }
 
-// ✅ Helper function to get current user (updated to use sessionStorage)
+/** Global payments collection record (for Payment Details page) */
+export interface PaymentRecord {
+  id: string;
+  enquiryId: string;
+  enquiryName: string;
+  date: string;
+  amount: number;
+  mode: "Online" | "Offline";
+  offlineType?: "Cash" | "Cheque";
+  note?: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
+/* ─────────────────────────────────────────────
+   Auth / permission helpers
+─────────────────────────────────────────────── */
+
 const getCurrentUser = () => {
   try {
     const currentUserStr = sessionStorage.getItem("auth_current_user");
@@ -39,630 +87,452 @@ const getCurrentUser = () => {
   }
 };
 
-// ✅ Helper function to check delete permission
 const checkDeletePermission = (): boolean => {
   const currentUser = getCurrentUser();
   if (!currentUser) {
     console.error("No user logged in");
     return false;
   }
-
   if (currentUser.role !== "admin") {
     console.error("User does not have permission to delete");
     return false;
   }
-
   return true;
 };
 
-export const storageUtils = {
-  // Get all enquiries
-  getAllEnquiries: async (): Promise<EnquiryData[]> => {
-    try {
-      const enquiries = await firestoreDB.enquiries.getAll();
-      // ✅ Fixed: Always returns array, no need for || []
-      return enquiries as EnquiryData[];
-    } catch (error) {
-      console.error("Error reading enquiries:", error);
-      return [];
-    }
-  },
+// Helper to sum payment history
+const sumHistory = (hist: PaymentHistoryItem[] = []) =>
+  hist.reduce((acc, p) => acc + Number(p.amount || "0"), 0);
 
-  // Save new enquiry
-  saveEnquiry: async (
-    enquiry: Omit<EnquiryData, "id" | "createdAt" | "updatedAt">
-  ): Promise<EnquiryData> => {
-    try {
-      const newEnquiry: any = {
-        ...enquiry,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+/* ─────────────────────────────────────────────
+   Payment functions (Firestore based)
+─────────────────────────────────────────────── */
 
-      const result = await firestoreDB.enquiries.add(newEnquiry);
-      
-      if (result.success && result.id) {
-        console.log("Enquiry saved successfully with ID:", result.id);
-        return { ...newEnquiry, id: result.id };
-      } else {
-        throw new Error("Failed to save enquiry");
-      }
-    } catch (error) {
-      console.error("Error saving enquiry:", error);
-      throw error;
-    }
-  },
+async function getPayments(): Promise<PaymentRecord[]> {
+  try {
+    const payments = await firestoreDB.payments.getAll();
+    return (payments as PaymentRecord[]) || [];
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    return [];
+  }
+}
 
-  // Update existing enquiry
-  updateEnquiry: async (
-    id: string,
-    updatedData: Partial<EnquiryData>
-  ): Promise<EnquiryData | null> => {
-    try {
-      const dataToUpdate = {
-        ...updatedData,
-        updatedAt: new Date().toISOString(),
-      };
-
-      const result = await firestoreDB.enquiries.update(id, dataToUpdate);
-      
-      if (result.success) {
-        const enquiries = await firestoreDB.enquiries.getAll();
-        const updated = enquiries.find((enq: any) => enq.id === id);
-        console.log("Enquiry updated successfully:", updated);
-        return updated || null;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Error updating enquiry:", error);
-      throw error;
-    }
-  },
-
-  // Delete enquiry (with permission check)
-  deleteEnquiry: async (id: string): Promise<boolean> => {
-    try {
-      // Check permission first
-      if (!checkDeletePermission()) {
-        alert(
-          "You don't have permission to delete enquiries. Only administrators can delete records."
-        );
-        return false;
-      }
-
-      const result = await firestoreDB.enquiries.delete(id);
-      
-      if (result.success) {
-        const remaining = await firestoreDB.enquiries.getAll();
-        console.log("Enquiry deleted successfully. Remaining:", remaining.length);
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Error deleting enquiry:", error);
-      return false;
-    }
-  },
-
-  // Get enquiry by ID
-  getEnquiryById: async (id: string): Promise<EnquiryData | null> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return enquiries.find((enq) => enq.id === id) || null;
-  },
-
-  // Search enquiries
-  searchEnquiries: async (searchTerm: string): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return enquiries.filter(
-      (enq) =>
-        enq.fullName.toLowerCase().includes(lowerSearchTerm) ||
-        enq.mobile.includes(searchTerm) ||
-        enq.email.toLowerCase().includes(lowerSearchTerm) ||
-        enq.id.toLowerCase().includes(lowerSearchTerm)
-    );
-  },
-
-  // Get statistics
-  getStatistics: async () => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return {
-      total: enquiries.length,
-      confirmed: enquiries.filter((e) => e.status === "Confirmed").length,
-      pending: enquiries.filter((e) => e.status === "Pending").length,
-      inProcess: enquiries.filter((e) => e.status === "In Process").length,
+async function savePayment(
+  payment: Omit<PaymentRecord, "id" | "createdAt">
+): Promise<PaymentRecord | null> {
+  try {
+    // Build base object with createdAt
+    const base: Omit<PaymentRecord, "id"> = {
+      ...payment,
+      createdAt: new Date().toISOString(),
     };
-  },
 
-  // Export data as JSON
-  exportData: async (): Promise<string> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return JSON.stringify(enquiries, null, 2);
-  },
-
-  // Download CSV backup
-  downloadCSVBackup: async (): Promise<void> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    if (enquiries.length === 0) {
-      alert("No enquiries to export");
-      return;
+    // Remove all undefined fields (Firestore doesn't allow them)
+    const newPayment: any = {};
+    for (const [key, value] of Object.entries(base)) {
+      if (value !== undefined) {
+        newPayment[key] = value;
+      }
     }
 
-    const headers = [
-      "ID", "Full Name", "Mobile", "Alternate Mobile", "Email", "Address",
-      "Aadhar Number", "PAN Number", "Demat Account 1", "Demat Account 2",
-      "State", "Source", "Interest Level", "Status", "Profession",
-      "Custom Profession", "Market Knowledge", "How Did You Know",
-      "Custom Source", "Call Back Date", "Deposit Inward", "Deposit Outward",
-      "Created At", "Updated At"
-    ];
+    const result = await firestoreDB.payments.add(newPayment);
 
-    const rows = enquiries.map((e: EnquiryData) => [
-      e.id,
-      e.fullName,
-      e.mobile,
-      e.alternateMobile || "",
-      e.email,
-      e.address || "",
-      e.aadharNumber || "",
-      e.panNumber || "",
-      e.demateAccount1 || "",
-      e.demateAccount2 || "",
-      e.enquiryState,
-      e.sourceOfEnquiry || "",
-      e.interestedStatus || "",
-      e.status,
-      e.profession,
-      e.customProfession || "",
-      e.knowledgeOfShareMarket || "",
-      e.howDidYouKnow || "",
-      e.customHowDidYouKnow || "",
-      e.callBackDate || "",
-      e.depositInwardDate || "",
-      e.depositOutwardDate || "",
-      e.createdAt,
-      e.updatedAt || "",
-    ]);
+    // Case 1: wrapper returns { success, id }
+    if (result && "success" in result && result.success && result.id) {
+      console.log("Payment saved successfully:", result.id);
+      return { ...(newPayment as any), id: result.id } as PaymentRecord;
+    }
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
+    // Case 2: wrapper returns Firestore docRef directly
+    if (result && (result as any).id) {
+      console.log("Payment saved successfully (docRef):", (result as any).id);
+      return {
+        ...(newPayment as any),
+        id: (result as any).id,
+      } as PaymentRecord;
+    }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `enquiries_backup_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  },
+    throw new Error("Failed to save payment");
+  } catch (error) {
+    console.error("Error saving payment:", error);
+    return null;
+  }
+}
 
-  // Import data from JSON
-  importData: async (jsonData: string): Promise<boolean> => {
-    try {
-      const data = JSON.parse(jsonData);
-      if (Array.isArray(data)) {
-        for (const enquiry of data) {
-          await firestoreDB.enquiries.add(enquiry);
+async function deletePayment(id: string): Promise<boolean> {
+  try {
+    if (!checkDeletePermission()) {
+      alert("Only administrators can delete payments.");
+      return false;
+    }
+    const confirmDel = window.confirm("Are you sure you want to delete?");
+    if (!confirmDel) return false;
+
+    const result = await firestoreDB.payments.delete(id);
+    return !!result.success;
+  } catch (error) {
+    console.error("Error deleting payment:", error);
+    return false;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Enquiry helpers – core CRUD
+─────────────────────────────────────────────── */
+
+async function getAllEnquiries(): Promise<EnquiryData[]> {
+  try {
+    const enquiries = await firestoreDB.enquiries.getAll();
+    return enquiries as EnquiryData[];
+  } catch (error) {
+    console.error("Error reading enquiries:", error);
+    return [];
+  }
+}
+
+/**
+ * Save a new enquiry.
+ * Caller passes all fields except id.
+ */
+async function saveEnquiry(
+  enquiry: Omit<EnquiryData, "id">
+): Promise<EnquiryData> {
+  try {
+    const now = new Date().toISOString();
+
+    const newEnquiry: Omit<EnquiryData, "id"> = {
+      ...enquiry,
+      createdAt: enquiry.createdAt || now,
+      updatedAt: enquiry.updatedAt || now,
+    };
+
+    const result = await firestoreDB.enquiries.add(newEnquiry as any);
+    if (result.success && result.id) {
+      console.log("Enquiry saved successfully with ID:", result.id);
+      const saved: EnquiryData = { ...(newEnquiry as EnquiryData), id: result.id };
+
+      // If an initial payment history exists, mirror it into global payments
+      if (saved.paymentHistory && saved.paymentHistory.length > 0) {
+        const firstPayment = saved.paymentHistory[0];
+        if (
+          firstPayment &&
+          firstPayment.amount &&
+          Number(firstPayment.amount) > 0
+        ) {
+          await savePayment({
+            enquiryId: saved.id,
+            enquiryName: saved.fullName,
+            date: firstPayment.date,
+            amount: Number(firstPayment.amount),
+            mode: firstPayment.mode,
+            offlineType: firstPayment.method,
+            note:
+              firstPayment.note || "Initial payment recorded at registration",
+            createdBy: firstPayment.createdBy || getCurrentUser()?.email,
+          });
         }
-        console.log("Data imported successfully:", data.length, "records");
-        return true;
       }
-      return false;
-    } catch (error) {
-      console.error("Error importing data:", error);
-      return false;
-    }
-  },
 
-  // Clear all data
-  clearAllData: async (): Promise<void> => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete all enquiries? This action cannot be undone."
-      )
-    ) {
-      const enquiries = await storageUtils.getAllEnquiries();
-      for (const enq of enquiries) {
-        await firestoreDB.enquiries.delete(enq.id);
-      }
-      console.log("All data cleared");
+      return saved;
+    } else {
+      throw new Error("Failed to save enquiry");
     }
-  },
+  } catch (error) {
+    console.error("Error saving enquiry:", error);
+    throw error;
+  }
+}
 
-  // Get enquiries by date range
-  getEnquiriesByDateRange: async (
-    startDate: string,
-    endDate: string
-  ): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return enquiries.filter((enq) => {
-      const createdDate = new Date(enq.createdAt);
-      return (
-        createdDate >= new Date(startDate) && createdDate <= new Date(endDate)
+async function updateEnquiry(
+  id: string,
+  updatedData: Partial<EnquiryData>
+): Promise<EnquiryData | null> {
+  try {
+    const dataToUpdate = {
+      ...updatedData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const result = await firestoreDB.enquiries.update(id, dataToUpdate);
+    if (result.success) {
+      const enquiries = await firestoreDB.enquiries.getAll();
+      const updated = (enquiries as EnquiryData[]).find((enq) => enq.id === id);
+      console.log("Enquiry updated successfully:", updated);
+      return updated || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error updating enquiry:", error);
+    throw error;
+  }
+}
+
+async function deleteEnquiry(id: string): Promise<boolean> {
+  try {
+    if (!checkDeletePermission()) {
+      alert(
+        "You don't have permission to delete enquiries. Only administrators can delete records."
       );
+      return false;
+    }
+    const confirmDel = window.confirm("Are you sure you want to delete?");
+    if (!confirmDel) return false;
+
+    const result = await firestoreDB.enquiries.delete(id);
+    return !!result.success;
+  } catch (error) {
+    console.error("Error deleting enquiry:", error);
+    return false;
+  }
+}
+
+async function getEnquiryById(id: string): Promise<EnquiryData | null> {
+  const all = await getAllEnquiries();
+  return all.find((e) => e.id === id) || null;
+}
+
+/* ─────────────────────────────────────────────
+   Add payment to enquiry + recalc totals
+─────────────────────────────────────────────── */
+
+async function addPaymentToEnquiry(
+  enquiryId: string,
+  entry: {
+    date: string;
+    amount: string;                    // string as entered in form
+    mode: "Online" | "Offline";
+    method?: "Cash" | "Cheque";
+    note?: string;
+    createdBy?: string;
+  }
+): Promise<PaymentRecord | null> {
+  try {
+    const all = await getAllEnquiries();
+    const prev = all.find((e) => e.id === enquiryId);
+    if (!prev) throw new Error("Enquiry not found");
+
+    // Build PaymentHistoryItem without undefined fields
+    const newEntry: PaymentHistoryItem = {
+      id:
+        "PMT-" +
+        Date.now().toString(36).toUpperCase() +
+        "-" +
+        Math.random().toString(36).slice(2, 8).toUpperCase(),
+      date: entry.date,
+      amount: entry.amount,
+      mode: entry.mode,
+    };
+    if (entry.method) newEntry.method = entry.method;
+    if (entry.note) newEntry.note = entry.note;
+    if (entry.createdBy) newEntry.createdBy = entry.createdBy;
+
+    const history = [...(prev.paymentHistory || []), newEntry];
+
+    const totalFeesNum = Number(prev.totalFees || "0");
+    const totalPaidNum = sumHistory(history);
+    const remainingNum =
+      totalFeesNum > 0 ? Math.max(totalFeesNum - totalPaidNum, 0) : 0;
+
+    const update: Partial<EnquiryData> = {
+      paymentHistory: history,
+      paidFees: String(totalPaidNum),
+      remainingFees: String(remainingNum),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const result = await firestoreDB.enquiries.update(enquiryId, update);
+    if (!result.success) {
+      throw new Error("Failed to update enquiry for payment");
+    }
+
+    // Mirror payment to global payments collection
+    const paymentRecord = await savePayment({
+      enquiryId,
+      enquiryName: prev.fullName,
+      date: newEntry.date,
+      amount: Number(newEntry.amount),
+      mode: newEntry.mode,
+      offlineType: newEntry.method,
+      note: newEntry.note,
+      createdBy: newEntry.createdBy || getCurrentUser()?.email,
     });
-  },
 
-  // Get enquiries by status
-  getEnquiriesByStatus: async (status: string): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return enquiries.filter((enq) => enq.status === status);
-  },
+    return paymentRecord;
+  } catch (error) {
+    console.error("Error adding payment to enquiry:", error);
+    return null;
+  }
+}
 
-  // Enhanced Aadhar check with excludeId parameter
-  isAadharExists: async (aadhar: string, excludeId?: string): Promise<boolean> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const cleanAadhar = aadhar.replace(/\s/g, "");
-    return enquiries.some(
-      (enq) =>
-        enq.id !== excludeId &&
-        enq.aadharNumber.replace(/\s/g, "") === cleanAadhar
-    );
-  },
+/* ─────────────────────────────────────────────
+   Enquiry helpers – search & stats
+─────────────────────────────────────────────── */
 
-  // Enhanced PAN check with excludeId parameter
-  isPANExists: async (pan: string, excludeId?: string): Promise<boolean> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const cleanPAN = pan.toUpperCase().trim();
-    return enquiries.some(
-      (enq) =>
-        enq.id !== excludeId &&
-        enq.panNumber.toUpperCase().trim() === cleanPAN
-    );
-  },
+async function searchEnquiries(term: string): Promise<EnquiryData[]> {
+  const all = await getAllEnquiries();
+  const q = term.toLowerCase();
 
-  // Enhanced Mobile check with excludeId parameter
-  isMobileExists: async (mobile: string, excludeId?: string): Promise<boolean> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    return enquiries.some(
-      (enq) => enq.id !== excludeId && enq.mobile === mobile
-    );
-  },
+  return all.filter(
+    (e) =>
+      e.fullName.toLowerCase().includes(q) ||
+      e.mobile.includes(term) ||
+      e.email.toLowerCase().includes(q) ||
+      e.id.toLowerCase().includes(q)
+  );
+}
 
-  // Enhanced Email check with excludeId parameter
-  isEmailExists: async (email: string, excludeId?: string): Promise<boolean> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const cleanEmail = email.toLowerCase().trim();
-    return enquiries.some(
-      (enq) =>
-        enq.id !== excludeId &&
-        enq.email.toLowerCase().trim() === cleanEmail
-    );
-  },
+async function getStatistics() {
+  const all = await getAllEnquiries();
+  return {
+    total: all.length,
+    confirmed: all.filter((e) => e.status === "Confirmed").length,
+    pending: all.filter((e) => e.status === "Pending").length,
+    inProcess: all.filter((e) => e.status === "In Process").length,
+  };
+}
 
-  // Check for any duplicates in form data
-  checkDuplicates: async (
-    formData: Partial<EnquiryData>,
-    excludeId?: string
-  ): Promise<{
-    field: string;
-    message: string;
-  }[]> => {
-    const duplicates: { field: string; message: string }[] = [];
+/* ─────────────────────────────────────────────
+   Enquiry helpers – duplicate checks
+─────────────────────────────────────────────── */
 
-    if (formData.aadharNumber) {
-      const exists = await storageUtils.isAadharExists(formData.aadharNumber, excludeId);
-      if (exists) {
+const normalizeAadhar = (val: string) => val.replace(/\s/g, "");
+
+async function isMobileExists(mobile: string): Promise<boolean> {
+  if (!mobile.trim()) return false;
+  const all = await getAllEnquiries();
+  return all.some((e) => e.mobile === mobile);
+}
+
+async function isEmailExists(email: string): Promise<boolean> {
+  if (!email.trim()) return false;
+  const emailLower = email.toLowerCase();
+  const all = await getAllEnquiries();
+  return all.some((e) => e.email.toLowerCase() === emailLower);
+}
+
+async function isAadharExists(aadhar: string): Promise<boolean> {
+  if (!aadhar.trim()) return false;
+  const clean = normalizeAadhar(aadhar);
+  const all = await getAllEnquiries();
+  return all.some(
+    (e) => normalizeAadhar(e.aadharNumber || "") === clean
+  );
+}
+
+/**
+ * Get existing enquiry by aadhar/mobile/email (used for duplicate warning)
+ */
+async function getExistingEnquiry(value: string): Promise<EnquiryData | null> {
+  if (!value.trim()) return null;
+  const all = await getAllEnquiries();
+  const cleanAadhar = normalizeAadhar(value);
+  const lower = value.toLowerCase();
+
+  return (
+    all.find(
+      (e) =>
+        e.mobile === value ||
+        e.email.toLowerCase() === lower ||
+        normalizeAadhar(e.aadharNumber || "") === cleanAadhar
+    ) || null
+  );
+}
+
+/**
+ * Check for any duplicate fields before submit.
+ * Returns { field, message }[] used by AddEnquiry handleSubmit.
+ */
+async function checkDuplicates(
+  data: Partial<EnquiryData> & { id?: string }
+): Promise<{ field: string; message: string }[]> {
+  const all = await getAllEnquiries();
+  const duplicates: { field: string; message: string }[] = [];
+  const currentId = data.id;
+
+  const cleanAadharNew = data.aadharNumber
+    ? normalizeAadhar(data.aadharNumber)
+    : "";
+
+  for (const enq of all) {
+    if (currentId && enq.id === currentId) continue;
+
+    if (data.mobile && enq.mobile === data.mobile) {
+      duplicates.push({
+        field: "mobile",
+        message: "This mobile number is already registered",
+      });
+    }
+
+    if (data.email && data.email.trim()) {
+      if (enq.email.toLowerCase() === data.email.toLowerCase()) {
+        duplicates.push({
+          field: "email",
+          message: "This email is already registered",
+        });
+      }
+    }
+
+    if (data.aadharNumber && data.aadharNumber.trim()) {
+      const cleanExisting = normalizeAadhar(enq.aadharNumber || "");
+      if (cleanExisting === cleanAadharNew) {
         duplicates.push({
           field: "aadharNumber",
           message: "This Aadhar number is already registered",
         });
       }
     }
+  }
 
-    if (formData.panNumber) {
-      const exists = await storageUtils.isPANExists(formData.panNumber, excludeId);
-      if (exists) {
-        duplicates.push({
-          field: "panNumber",
-          message: "This PAN number is already registered",
-        });
-      }
-    }
+  // Remove duplicate entries for same field
+  const seen = new Set<string>();
+  return duplicates.filter((d) => {
+    if (seen.has(d.field)) return false;
+    seen.add(d.field);
+    return true;
+  });
+}
 
-    if (formData.mobile) {
-      const exists = await storageUtils.isMobileExists(formData.mobile, excludeId);
-      if (exists) {
-        duplicates.push({
-          field: "mobile",
-          message: "This mobile number is already registered",
-        });
-      }
-    }
+/* ─────────────────────────────────────────────
+   Main export object
+─────────────────────────────────────────────── */
 
-    if (formData.email) {
-      const exists = await storageUtils.isEmailExists(formData.email, excludeId);
-      if (exists) {
-        duplicates.push({
-          field: "email",
-          message: "This email address is already registered",
-        });
-      }
-    }
+export const storageUtils = {
+  // 💳 Payment helpers
+  getPayments,
+  savePayment,
+  deletePayment,
+  addPaymentToEnquiry,  // <-- new helper
 
-    return duplicates;
-  },
+  // 📋 Enquiry helpers (CRUD)
+  getAllEnquiries,
+  saveEnquiry,
+  updateEnquiry,
+  deleteEnquiry,
+  getEnquiryById,
 
-  // Get existing enquiry details by Aadhar or PAN
-  getExistingEnquiry: async (
-    aadhar?: string,
-    pan?: string,
-    mobile?: string,
-    email?: string
-  ): Promise<EnquiryData | null> => {
-    const enquiries = await storageUtils.getAllEnquiries();
+  // 🔍 Search & stats
+  searchEnquiries,
+  getStatistics,
 
-    if (aadhar) {
-      const cleanAadhar = aadhar.replace(/\s/g, "");
-      const found = enquiries.find(
-        (enq) => enq.aadharNumber.replace(/\s/g, "") === cleanAadhar
-      );
-      if (found) return found;
-    }
-
-    if (pan) {
-      const cleanPAN = pan.toUpperCase().trim();
-      const found = enquiries.find(
-        (enq) => enq.panNumber.toUpperCase().trim() === cleanPAN
-      );
-      if (found) return found;
-    }
-
-    if (mobile) {
-      const found = enquiries.find((enq) => enq.mobile === mobile);
-      if (found) return found;
-    }
-
-    if (email) {
-      const cleanEmail = email.toLowerCase().trim();
-      const found = enquiries.find(
-        (enq) => enq.email.toLowerCase().trim() === cleanEmail
-      );
-      if (found) return found;
-    }
-
-    return null;
-  },
-
-  // Get today's follow-ups
-  getTodayFollowUps: async (): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return enquiries.filter((enq) => {
-      if (!enq.callBackDate) return false;
-      const callBackDate = new Date(enq.callBackDate);
-      callBackDate.setHours(0, 0, 0, 0);
-      return callBackDate.getTime() === today.getTime();
-    });
-  },
-
-  // Get all upcoming follow-ups
-  getAllFollowUps: async (): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return enquiries.filter((enq) => {
-      if (!enq.callBackDate) return false;
-      const callBackDate = new Date(enq.callBackDate);
-      callBackDate.setHours(0, 0, 0, 0);
-      return callBackDate >= today;
-    });
-  },
-
-  // Get overdue follow-ups
-  getOverdueFollowUps: async (): Promise<EnquiryData[]> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return enquiries.filter((enq) => {
-      if (!enq.callBackDate) return false;
-      const callBackDate = new Date(enq.callBackDate);
-      callBackDate.setHours(0, 0, 0, 0);
-      return callBackDate < today;
-    });
-  },
-
-  // Validate unique fields before saving
-  validateUniqueFields: async (
-    formData: Partial<EnquiryData>,
-    excludeId?: string
-  ): Promise<{ isValid: boolean; errors: string[] }> => {
-    const errors: string[] = [];
-
-    if (formData.aadharNumber) {
-      const exists = await storageUtils.isAadharExists(formData.aadharNumber, excludeId);
-      if (exists) {
-        errors.push("Aadhar number already exists");
-      }
-    }
-
-    if (formData.panNumber) {
-      const exists = await storageUtils.isPANExists(formData.panNumber, excludeId);
-      if (exists) {
-        errors.push("PAN number already exists");
-      }
-    }
-
-    if (formData.mobile) {
-      const exists = await storageUtils.isMobileExists(formData.mobile, excludeId);
-      if (exists) {
-        errors.push("Mobile number already exists");
-      }
-    }
-
-    if (formData.email) {
-      const exists = await storageUtils.isEmailExists(formData.email, excludeId);
-      if (exists) {
-        errors.push("Email address already exists");
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
-  },
-
-  // Bulk import enquiries with duplicate checking
-  bulkImportEnquiries: async (
-    enquiries: Omit<EnquiryData, "id" | "createdAt" | "updatedAt">[]
-  ): Promise<{
-    success: number;
-    failed: number;
-    errors: { index: number; error: string }[];
-  }> => {
-    const result = {
-      success: 0,
-      failed: 0,
-      errors: [] as { index: number; error: string }[],
-    };
-
-    for (let index = 0; index < enquiries.length; index++) {
-      const enquiry = enquiries[index];
-      try {
-        // Check for duplicates
-        const validation = await storageUtils.validateUniqueFields(enquiry);
-        if (!validation.isValid) {
-          result.failed++;
-          result.errors.push({
-            index,
-            error: validation.errors.join(", "),
-          });
-          continue;
-        }
-
-        // Save enquiry
-        await storageUtils.saveEnquiry(enquiry);
-        result.success++;
-      } catch (error) {
-        result.failed++;
-        result.errors.push({
-          index,
-          error:
-            error instanceof Error ? error.message : "Unknown error occurred",
-        });
-      }
-    }
-
-    return result;
-  },
-
-  // Get enquiries count by state
-  getEnquiriesByState: async (): Promise<{ [state: string]: number }> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const stateCount: { [state: string]: number } = {};
-
-    enquiries.forEach((enq) => {
-      if (enq.enquiryState) {
-        stateCount[enq.enquiryState] =
-          (stateCount[enq.enquiryState] || 0) + 1;
-      }
-    });
-
-    return stateCount;
-  },
-
-  // Get enquiries count by profession
-  getEnquiriesByProfession: async (): Promise<{ [profession: string]: number }> => {
-    const enquiries = await storageUtils.getAllEnquiries();
-    const professionCount: { [profession: string]: number } = {};
-
-    enquiries.forEach((enq) => {
-      const profession =
-        enq.profession === "Other" && enq.customProfession
-          ? enq.customProfession
-          : enq.profession;
-      if (profession) {
-        professionCount[profession] = (professionCount[profession] || 0) + 1;
-      }
-    });
-
-    return professionCount;
-  },
-
-  // Advanced search with multiple filters
-  advancedSearch: async (filters: {
-    searchTerm?: string;
-    status?: string;
-    state?: string;
-    profession?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): Promise<EnquiryData[]> => {
-    let enquiries = await storageUtils.getAllEnquiries();
-
-    if (filters.searchTerm) {
-      const term = filters.searchTerm.toLowerCase();
-      enquiries = enquiries.filter(
-        (enq) =>
-          enq.fullName.toLowerCase().includes(term) ||
-          enq.mobile.includes(filters.searchTerm!) ||
-          enq.email.toLowerCase().includes(term) ||
-          enq.id.toLowerCase().includes(term)
-      );
-    }
-
-    if (filters.status) {
-      enquiries = enquiries.filter((enq) => enq.status === filters.status);
-    }
-
-    if (filters.state) {
-      enquiries = enquiries.filter(
-        (enq) => enq.enquiryState === filters.state
-      );
-    }
-
-    if (filters.profession) {
-      enquiries = enquiries.filter(
-        (enq) => enq.profession === filters.profession
-      );
-    }
-
-    if (filters.dateFrom) {
-      const fromDate = new Date(filters.dateFrom);
-      enquiries = enquiries.filter(
-        (enq) => new Date(enq.createdAt) >= fromDate
-      );
-    }
-
-    if (filters.dateTo) {
-      const toDate = new Date(filters.dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      enquiries = enquiries.filter(
-        (enq) => new Date(enq.createdAt) <= toDate
-      );
-    }
-
-    return enquiries;
-  },
+  // ⚠️ Duplicate checks (used in AddEnquiry)
+  isMobileExists,
+  isEmailExists,
+  isAadharExists,
+  getExistingEnquiry,
+  checkDuplicates,
 };
 
-// Generate unique ID
-export const generateUniqueId = (): string => {
-  return `ENQ-${Date.now()}-${Math.random()
+/* ─────────────────────────────────────────────
+   Small helper exports
+─────────────────────────────────────────────── */
+
+export const generateUniqueId = (): string =>
+  `ENQ-${Date.now()}-${Math.random()
     .toString(36)
     .substr(2, 9)
     .toUpperCase()}`;
-};
 
-// Export helper functions
-export const canDeleteEnquiry = (): boolean => {
-  return checkDeletePermission();
-};
+export const canDeleteEnquiry = (): boolean => checkDeletePermission();
 
-export const getCurrentUserInfo = () => {
-  return getCurrentUser();
-};
+export const getCurrentUserInfo = () => getCurrentUser();

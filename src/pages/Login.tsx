@@ -5,15 +5,16 @@ import {
   Eye,
   EyeOff,
   Lock,
-  User,
-  Shield,
   Mail,
+  Shield,
   AlertCircle,
   X,
 } from "lucide-react";
 
+const LOGO_SRC = "/favicon1.png"; // change to "/favicon1.svg" or "/kali_byte_logo.png" if needed
+
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -26,11 +27,9 @@ const Login: React.FC = () => {
   // Navigate to dashboard when authenticated
   useEffect(() => {
     if (isAuthenticated && currentUser && !isLoading) {
-      console.log("✅ User authenticated, navigating to dashboard");
       const timeoutId = setTimeout(() => {
         navigate("/", { replace: true });
       }, 100);
-
       return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, currentUser, navigate, isLoading]);
@@ -42,7 +41,6 @@ const Login: React.FC = () => {
         setShowErrorPopup(false);
         setError("");
       }, 5000);
-
       return () => clearTimeout(timer);
     }
   }, [showErrorPopup]);
@@ -55,40 +53,41 @@ const Login: React.FC = () => {
     setShowErrorPopup(false);
     setIsLoading(true);
 
-    // Basic validation
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter both username/email and password");
+    // Validate email format
+    if (!email.trim()) {
+      setError("Please enter your email address");
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
-    console.log("🔐 Attempting login with:", {
-      usernameOrEmail: username,
-      passwordLength: password.length,
-      rememberMe,
-    });
+    if (!email.includes("@") || !email.includes(".")) {
+      setError("Please enter a valid email address");
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter your password");
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const success = await login(username.trim(), password, rememberMe);
-
+      const success = await login(email.trim(), password, rememberMe);
       if (success) {
-        console.log("✅ Login successful, redirecting...");
-        // Navigation will happen automatically via useEffect
+        // Navigation will happen via useEffect
       }
     } catch (err: any) {
-      console.error("❌ Login failed:", err);
-
-      // Extract error message
       const errorMessage =
         err?.message ||
         err?.toString() ||
         "An error occurred during login. Please try again.";
-
       setError(errorMessage);
       setShowErrorPopup(true);
     } finally {
-      // Always reset loading state
       setIsLoading(false);
     }
   };
@@ -98,11 +97,8 @@ const Login: React.FC = () => {
     setError("");
   };
 
-  // Detect if input is email
-  const isEmail = username.includes("@");
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-sky-100 p-4">
       {/* Error Popup Modal */}
       {showErrorPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn">
@@ -154,8 +150,12 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl shadow-lg mb-4">
-            <Shield size={32} className="text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-sky-100 rounded-2xl shadow-md ring-1 ring-sky-200 mb-4">
+            <img
+              src={LOGO_SRC}
+              alt="Company logo"
+              className="h-32 w-32 object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome Back
@@ -166,41 +166,30 @@ const Login: React.FC = () => {
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username/Email Field */}
+            {/* Email Field */}
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Username or Email
+                Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  {isEmail ? (
-                    <Mail size={20} className="text-gray-400" />
-                  ) : (
-                    <User size={20} className="text-gray-400" />
-                  )}
+                  <Mail size={20} className="text-gray-400" />
                 </div>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                  placeholder="Enter username or email"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
+                  placeholder="Enter your email address"
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   disabled={isLoading}
                 />
               </div>
-              {username && (
-                <p className="mt-1 text-xs text-gray-500">
-                  {isEmail
-                    ? "📧 Logging in with email"
-                    : "👤 Logging in with username"}
-                </p>
-              )}
             </div>
 
             {/* Password Field */}
@@ -220,7 +209,7 @@ const Login: React.FC = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
                   placeholder="Enter your password"
                   required
                   autoComplete="current-password"
@@ -255,7 +244,7 @@ const Login: React.FC = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-2 focus:ring-sky-500 cursor-pointer"
                   disabled={isLoading}
                 />
                 <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
@@ -281,7 +270,7 @@ const Login: React.FC = () => {
                 </div>
               </label>
               {rememberMe && (
-                <span className="text-xs text-green-600 font-medium">
+                <span className="text-xs text-sky-600 font-medium">
                   ✓ Stay logged in
                 </span>
               )}
@@ -289,7 +278,7 @@ const Login: React.FC = () => {
 
             {/* Info about Remember Me */}
             {rememberMe ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-800">
+              <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs text-sky-800">
                 <p className="flex items-center gap-2">
                   <svg
                     className="w-4 h-4 flex-shrink-0"
@@ -328,7 +317,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+              className="w-full bg-sky-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
             >
               {isLoading ? (
                 <>
@@ -373,50 +362,61 @@ const Login: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* Default Login Credentials Info */}
+        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-sky-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                Default Admin Login
+              </h4>
+              <div className="text-xs text-gray-600 space-y-1">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <code className="bg-gray-100 px-2 py-0.5 rounded">
+                    admin@enquirysystem.com
+                  </code>
+                </p>
+                <p>
+                  <span className="font-medium">Password:</span>{" "}
+                  <code className="bg-gray-100 px-2 py-0.5 rounded">
+                    admin@123
+                  </code>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Add custom animations */}
       <style>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; } to { opacity: 1; }
         }
-
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes shrink {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
+          from { width: 100%; } to { width: 0%; }
         }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .animate-slideDown {
-          animation: slideDown 0.3s ease-out;
-        }
-
-        .animate-shrink {
-          animation: shrink 5s linear forwards;
-        }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+        .animate-shrink { animation: shrink 5s linear forwards; }
       `}</style>
     </div>
   );

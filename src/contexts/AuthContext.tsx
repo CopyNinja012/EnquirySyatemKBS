@@ -8,6 +8,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  deleteUser as firebaseDeleteUser,
 } from "firebase/auth";
 import {
   collection,
@@ -18,9 +19,13 @@ import {
   updateDoc,
   query,
   where,
+  deleteDoc,
 } from "firebase/firestore";
-import { auth, db } from "../config/firebase";
+import { auth, db, secondaryAuth } from "../config/firebase";
 
+/* ───────────────────────────────
+   TYPES & CONTEXT
+──────────────────────────────── */
 export interface User {
   id: string;
   username: string;
@@ -32,352 +37,425 @@ export interface User {
   createdBy?: string;
   isActive: boolean;
   firebaseUid?: string;
+  permissions?: string[];
+  updatedAt?: string;
+  passwordChangedAt?: string;
 }
 
 interface AuthContextType {
   currentUser: User | null;
   login: (
-    username: string,
+    email: string,
     password: string,
     rememberMe: boolean
   ) => Promise<boolean>;
   logout: () => void;
   isAdmin: () => boolean;
   canDelete: () => boolean;
+  hasPermission: (perm: string) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
+  updateUserPassword: (userId: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/* ───────────────────────────────
+   CONSTANTS
+──────────────────────────────── */
 const AUTH_STORAGE_KEY = "auth_current_user";
 const REMEMBER_ME_KEY = "auth_remember_me";
 const USERS_COLLECTION = "users";
 
-// Default admin credentials
 const DEFAULT_ADMIN: Omit<User, "id"> = {
   username: "admin",
   role: "admin",
-  fullName: "System Administrator",
-  email: "admin@gmail.com",
+  fullName: "Aditya Chougule",
+  email: "admin@enquirysystem.com",
   createdAt: new Date().toISOString(),
   isActive: true,
+  permissions: [
+    "Add Enquiry",
+    "Search Enquiry",
+    "View Enquiry",
+    "Manage Payment Details",
+    "Today's Follow-ups",
+    "All Follow-ups",
+    "Import Advertisement",
+    "View Advertisement Data",
+    "Search Advertisement",
+  ],
 };
 
 const DEFAULT_ADMIN_PASSWORD = "admin@123";
 
+/* ───────────────────────────────
+   FIRESTORE + AUTH UTILITIES
+──────────────────────────────── */
 export const authUtils = {
-  // Get all users from Firestore
+  /** Get all users */
   getAllUsers: async (): Promise<User[]> => {
     try {
-      const usersRef = collection(db, USERS_COLLECTION);
-      const snapshot = await getDocs(usersRef);
-
-      const users = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        isActive: Boolean(doc.data().isActive),
+      const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+      const users = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        isActive: Boolean(d.data().isActive),
       })) as User[];
-
-      console.log("📋 Loaded", users.length, "users from Firestore");
       return users;
-    } catch (error) {
-      console.error("❌ Error reading users:", error);
+    } catch (err) {
+      console.error("❌ getAllUsers error:", err);
       return [];
     }
   },
 
-  // Get user by Firestore document ID
+  /** Get user by Firestore ID */
   getUserById: async (id: string): Promise<User | null> => {
     try {
       const userRef = doc(db, USERS_COLLECTION, id);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        return {
-          id: userDoc.id,
-          ...userDoc.data(),
-          isActive: Boolean(userDoc.data().isActive),
-        } as User;
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as User;
       }
       return null;
-    } catch (error) {
-      console.error("❌ Error getting user by ID:", error);
+    } catch (err) {
+      console.error("❌ getUserById error:", err);
       return null;
     }
   },
 
-  // Get user by Firebase Auth UID
+  /** Get user by Firebase UID */
   getUserByFirebaseUid: async (firebaseUid: string): Promise<User | null> => {
     try {
-      const usersRef = collection(db, USERS_COLLECTION);
-      const q = query(usersRef, where("firebaseUid", "==", firebaseUid));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const userDoc = snapshot.docs[0];
-        return {
-          id: userDoc.id,
-          ...userDoc.data(),
-          isActive: Boolean(userDoc.data().isActive),
-        } as User;
+      const q = query(
+        collection(db, USERS_COLLECTION),
+        where("firebaseUid", "==", firebaseUid)
+      );
+      const res = await getDocs(q);
+      if (!res.empty) {
+        const docSnap = res.docs[0];
+        return { id: docSnap.id, ...docSnap.data() } as User;
       }
       return null;
-    } catch (error) {
-      console.error("❌ Error getting user by Firebase UID:", error);
+    } catch (err) {
+      console.error("❌ getUserByFirebaseUid error:", err);
       return null;
     }
   },
 
-  // Find user by username
+  /** Search by username */
   findUserByUsername: async (username: string): Promise<User | null> => {
     try {
-      const usersRef = collection(db, USERS_COLLECTION);
       const q = query(
-        usersRef,
+        collection(db, USERS_COLLECTION),
         where("username", "==", username),
         where("isActive", "==", true)
       );
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const userDoc = snapshot.docs[0];
-        return {
-          id: userDoc.id,
-          ...userDoc.data(),
-          isActive: true,
-        } as User;
+      const res = await getDocs(q);
+      if (!res.empty) {
+        const docSnap = res.docs[0];
+        return { id: docSnap.id, ...docSnap.data() } as User;
       }
       return null;
-    } catch (error) {
-      console.error("❌ Error finding user by username:", error);
+    } catch (err) {
+      console.error("❌ findUserByUsername error:", err);
       return null;
     }
   },
 
-  // Find user by email
+  /** Search by email */
   findUserByEmail: async (email: string): Promise<User | null> => {
     try {
-      const usersRef = collection(db, USERS_COLLECTION);
       const q = query(
-        usersRef,
+        collection(db, USERS_COLLECTION),
         where("email", "==", email),
         where("isActive", "==", true)
       );
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const userDoc = snapshot.docs[0];
-        return {
-          id: userDoc.id,
-          ...userDoc.data(),
-          isActive: true,
-        } as User;
+      const res = await getDocs(q);
+      if (!res.empty) {
+        const docSnap = res.docs[0];
+        return { id: docSnap.id, ...docSnap.data() } as User;
       }
       return null;
-    } catch (error) {
-      console.error("❌ Error finding user by email:", error);
+    } catch (err) {
+      console.error("❌ findUserByEmail error:", err);
       return null;
     }
   },
 
-  // Validate credentials - Throws errors for better error handling
+  /** Validate credentials before Firebase login */
   validateCredentials: async (
     usernameOrEmail: string,
     password: string,
     rememberMe: boolean
   ): Promise<{ user: User; firebaseUser: FirebaseUser }> => {
-    try {
-      let user: User | null = null;
-
-      // Detect if input is email or username
-      if (usernameOrEmail.includes("@")) {
-        console.log("🔍 Searching by email:", usernameOrEmail);
-        user = await authUtils.findUserByEmail(usernameOrEmail);
-      } else {
-        console.log("🔍 Searching by username:", usernameOrEmail);
-        user = await authUtils.findUserByUsername(usernameOrEmail);
-      }
-
-      // User not found in Firestore
-      if (!user || !user.email) {
-        console.log("❌ User not found in Firestore");
-        throw new Error(
-          "Invalid username/email or password. Please try again."
-        );
-      }
-
-      console.log("✅ User found in Firestore:", user.username);
-      console.log("📧 Authenticating with email:", user.email);
-
-      // Set persistence based on Remember Me
-      if (rememberMe) {
-        console.log("💾 Remember Me: Enabled (browserLocalPersistence)");
-        console.log("   → Will stay logged in even after closing browser");
-        await setPersistence(auth, browserLocalPersistence);
-        localStorage.setItem(REMEMBER_ME_KEY, "true");
-      } else {
-        console.log("🔒 Remember Me: Disabled (browserSessionPersistence)");
-        console.log("   → Will logout when browser/tab is closed");
-        await setPersistence(auth, browserSessionPersistence);
-        localStorage.setItem(REMEMBER_ME_KEY, "false");
-      }
-
-      // Authenticate with Firebase Auth
-      let userCredential;
-      try {
-        userCredential = await signInWithEmailAndPassword(
-          auth,
-          user.email,
-          password
-        );
-      } catch (authError: any) {
-        console.error("❌ Firebase Auth error:", authError.code);
-
-        // Handle specific Firebase Auth errors
-        switch (authError.code) {
-          case "auth/invalid-credential":
-          case "auth/wrong-password":
-          case "auth/user-not-found":
-            throw new Error(
-              "Invalid username/email or password. Please try again."
-            );
-
-          case "auth/too-many-requests":
-            throw new Error(
-              "Too many failed login attempts. Please try again later."
-            );
-
-          case "auth/network-request-failed":
-            throw new Error(
-              "Network error. Please check your internet connection."
-            );
-
-          case "auth/user-disabled":
-            throw new Error(
-              "This account has been disabled. Please contact support."
-            );
-
-          default:
-            throw new Error(
-              authError.message || "Login failed. Please try again."
-            );
-        }
-      }
-
-      // Check if user is active
-      if (!user.isActive) {
-        console.log("❌ User account is inactive");
-        await signOut(auth);
-        throw new Error(
-          "Your account has been deactivated. Please contact an administrator."
-        );
-      }
-
-      console.log("✅ User authenticated successfully:", user.username);
-      return { user, firebaseUser: userCredential.user };
-    } catch (error: any) {
-      // Re-throw the error to be caught by login function
-      throw error;
+    let user: User | null = null;
+    if (usernameOrEmail.includes("@")) {
+      user = await authUtils.findUserByEmail(usernameOrEmail);
+    } else {
+      user = await authUtils.findUserByUsername(usernameOrEmail);
     }
+
+    if (!user || !user.email) {
+      throw new Error("Invalid email or password");
+    }
+
+    await setPersistence(
+      auth,
+      rememberMe ? browserLocalPersistence : browserSessionPersistence
+    );
+    localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? "true" : "false");
+
+    const credential = await signInWithEmailAndPassword(
+      auth,
+      user.email,
+      password
+    );
+
+    if (!user.isActive) {
+      await signOut(auth);
+      throw new Error("Account deactivated");
+    }
+
+    return { user, firebaseUser: credential.user };
   },
 
-  // Add new user
+  /** Create new user (adds Firebase Auth + Firestore) */
   addUser: async (
-    userData: Omit<User, "id" | "createdAt" | "firebaseUid">,
+    userData: Omit<User, "id" | "firebaseUid" | "createdAt">,
     password: string
   ): Promise<User> => {
     try {
-      console.log("📧 Creating Firebase Auth user with email:", userData.email);
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
+      // Use secondary auth instance to prevent logging out the admin
+      const cred = await createUserWithEmailAndPassword(
+        secondaryAuth,
         userData.email,
         password
       );
-
-      const firebaseUid = userCredential.user.uid;
-      console.log("✅ Firebase Auth user created with UID:", firebaseUid);
+      const firebaseUid = cred.user.uid;
 
       const newUser: Omit<User, "id"> = {
         ...userData,
         firebaseUid,
         createdAt: new Date().toISOString(),
         isActive: true,
+        passwordChangedAt: new Date().toISOString(),
       };
 
-      const userRef = doc(db, USERS_COLLECTION, firebaseUid);
-      await setDoc(userRef, newUser);
+      const ref = doc(db, USERS_COLLECTION, firebaseUid);
+      await setDoc(ref, newUser);
 
-      console.log("✅ Firestore document created");
-      console.log("✅ User created:", userData.username);
+      // Sign out from secondary auth immediately to clean up
+      await signOut(secondaryAuth);
 
-      return {
-        id: firebaseUid,
-        ...newUser,
-      };
-    } catch (error: any) {
-      console.error("❌ Error adding user:", error);
+      console.log("✅ User created successfully");
+      return { id: firebaseUid, ...newUser };
+    } catch (err) {
+      console.error("❌ addUser error:", err);
+      await signOut(secondaryAuth).catch(() => {});
+      throw err;
+    }
+  },
 
-      if (error.code === "auth/email-already-in-use") {
-        throw new Error("Email is already in use");
-      } else if (error.code === "auth/weak-password") {
-        throw new Error("Password should be at least 6 characters");
-      } else if (error.code === "auth/invalid-email") {
-        throw new Error("Invalid email address");
+  /** Update user password - Admin only */
+  updatePassword: async (
+    userId: string,
+    newPassword: string
+  ): Promise<boolean> => {
+    try {
+      console.log("🔐 Starting password update for user:", userId);
+
+      // Get current user data
+      const currentUser = await authUtils.getUserById(userId);
+      if (!currentUser) {
+        throw new Error("User not found");
       }
 
-      throw error;
+      console.log("📧 User email:", currentUser.email);
+
+      // Step 1: Create new Firebase Auth user with new password
+      console.log("🔄 Creating new auth user with new password...");
+      const cred = await createUserWithEmailAndPassword(
+        secondaryAuth,
+        currentUser.email,
+        newPassword
+      );
+      const newFirebaseUid = cred.user.uid;
+      console.log("✅ New auth user created with UID:", newFirebaseUid);
+
+      // Step 2: Prepare updated user data
+      const updatedUserData = {
+        ...currentUser,
+        firebaseUid: newFirebaseUid,
+        updatedAt: new Date().toISOString(),
+        passwordChangedAt: new Date().toISOString(),
+      };
+      delete (updatedUserData as any).id;
+
+      // Step 3: Save to new Firestore document
+      console.log("💾 Saving to new Firestore document...");
+      const newRef = doc(db, USERS_COLLECTION, newFirebaseUid);
+      await setDoc(newRef, updatedUserData);
+      console.log("✅ New Firestore document created");
+
+      // Step 4: Delete old Firestore document
+      console.log("🗑️ Deleting old Firestore document...");
+      const oldRef = doc(db, USERS_COLLECTION, userId);
+      await deleteDoc(oldRef);
+      console.log("✅ Old Firestore document deleted");
+
+      // Step 5: Sign out from secondary auth
+      await signOut(secondaryAuth);
+      console.log("✅ Secondary auth signed out");
+
+      console.log("✅ Password updated successfully!");
+      console.log("🔐 Old password will no longer work");
+      console.log("🔐 New password is now active");
+
+      return true;
+    } catch (err: any) {
+      console.error("❌ updatePassword error:", err);
+
+      // Handle specific errors
+      if (err.code === "auth/email-already-in-use") {
+        console.error("❌ Email already in use - this shouldn't happen");
+        throw new Error(
+          "Password update failed. The email is already associated with another account."
+        );
+      }
+
+      if (err.code === "auth/weak-password") {
+        throw new Error("Password is too weak. Please use a stronger password.");
+      }
+
+      // Clean up secondary auth
+      await signOut(secondaryAuth).catch(() => {});
+      
+      throw new Error(err.message || "Failed to update password");
     }
   },
 
-  // Update user
-  updateUser: async (id: string, updates: Partial<User>): Promise<boolean> => {
+  /** Update user fields (with optional password change) */
+  updateUser: async (
+    id: string,
+    updates: Partial<User>,
+    newPassword?: string
+  ): Promise<boolean> => {
     try {
-      const userRef = doc(db, USERS_COLLECTION, id);
-      const { firebaseUid, createdAt, ...updateData } = updates;
-      await updateDoc(userRef, updateData);
-      console.log("✅ User updated:", id);
-      return true;
-    } catch (error) {
-      console.error("❌ Error updating user:", error);
+      // If password needs to be updated
+      if (newPassword && newPassword.trim() !== "") {
+        console.log("🔄 Updating user with new password...");
+        
+        // Get current user data
+        const currentUser = await authUtils.getUserById(id);
+        if (!currentUser) {
+          throw new Error("User not found");
+        }
+
+        // Create new auth user with new password
+        const cred = await createUserWithEmailAndPassword(
+          secondaryAuth,
+          currentUser.email,
+          newPassword
+        );
+        const newFirebaseUid = cred.user.uid;
+
+        // Merge current data with updates
+        const updatedData = {
+          ...currentUser,
+          ...updates,
+          firebaseUid: newFirebaseUid,
+          updatedAt: new Date().toISOString(),
+          passwordChangedAt: new Date().toISOString(),
+        };
+
+        // Remove id field
+        const { id: _id, ...firestoreData } = updatedData as any;
+
+        // Create new document with new UID
+        const newRef = doc(db, USERS_COLLECTION, newFirebaseUid);
+        await setDoc(newRef, firestoreData);
+
+        // Delete old document
+        const oldRef = doc(db, USERS_COLLECTION, id);
+        await deleteDoc(oldRef);
+
+        // Clean up secondary auth
+        await signOut(secondaryAuth);
+
+        console.log("✅ User and password updated successfully");
+        return true;
+      } else {
+        // No password change - just update Firestore
+        const { firebaseUid, createdAt, id: userId, passwordChangedAt, ...data } = updates;
+        const ref = doc(db, USERS_COLLECTION, id);
+        await updateDoc(ref, {
+          ...data,
+          updatedAt: new Date().toISOString(),
+        });
+        console.log("✅ User updated successfully (no password change)");
+        return true;
+      }
+    } catch (err: any) {
+      console.error("❌ updateUser error:", err);
+      
+      if (err.code === "auth/email-already-in-use") {
+        throw new Error("Email already in use. Password not updated.");
+      }
+      
+      await signOut(secondaryAuth).catch(() => {});
       return false;
     }
   },
 
-  // Delete user
+  /** Soft delete user (set isActive=false) */
   deleteUser: async (id: string): Promise<boolean> => {
     try {
-      const userRef = doc(db, USERS_COLLECTION, id);
-      await updateDoc(userRef, { isActive: false });
-      console.log("✅ User deactivated:", id);
+      const ref = doc(db, USERS_COLLECTION, id);
+      await updateDoc(ref, {
+        isActive: false,
+        updatedAt: new Date().toISOString(),
+      });
       return true;
-    } catch (error) {
-      console.error("❌ Error deleting user:", error);
+    } catch (err) {
+      console.error("❌ deleteUser error:", err);
       return false;
     }
   },
 
-  // Check if username exists
+  /** Hard delete user (remove from Firestore completely) */
+  hardDeleteUser: async (id: string): Promise<boolean> => {
+    try {
+      const ref = doc(db, USERS_COLLECTION, id);
+      await deleteDoc(ref);
+      console.log("✅ User permanently deleted");
+      return true;
+    } catch (err) {
+      console.error("❌ hardDeleteUser error:", err);
+      return false;
+    }
+  },
+
+  /** Check duplicate username */
   usernameExists: async (
     username: string,
     excludeId?: string
   ): Promise<boolean> => {
-    const users = await authUtils.getAllUsers();
-    return users.some(
+    const all = await authUtils.getAllUsers();
+    return all.some(
       (u) => u.username === username && (!excludeId || u.id !== excludeId)
     );
   },
 
-  // Check if email exists
+  /** Check duplicate email */
   emailExists: async (email: string, excludeId?: string): Promise<boolean> => {
-    const users = await authUtils.getAllUsers();
-    return users.some(
+    const all = await authUtils.getAllUsers();
+    return all.some(
       (u) => u.email === email && (!excludeId || u.id !== excludeId)
     );
   },
 
-  // Get current user from session storage
+  /** Persist current user in session */
   getCurrentUser: (): User | null => {
     try {
       const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -387,71 +465,44 @@ export const authUtils = {
     }
   },
 
-  // Save current user to session storage
-  setCurrentUser: (user: User | null): void => {
-    if (user) {
+  setCurrentUser: (user: User | null) => {
+    if (user)
       sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    } else {
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    }
+    else sessionStorage.removeItem(AUTH_STORAGE_KEY);
   },
 
-  // Check if user has delete permission
-  canDelete: (user: User | null): boolean => {
-    return user?.role === "admin";
-  },
-
-  // Initialize default admin
+  /** Initialize default admin if Firestore empty */
   initializeDefaultAdmin: async (): Promise<void> => {
     try {
-      const users = await authUtils.getAllUsers();
-
-      if (users.length === 0) {
-        console.log(
-          "🔧 No users found in Firestore, creating default admin..."
-        );
-
-        const existingUser = await authUtils.findUserByEmail(
-          DEFAULT_ADMIN.email
-        );
-
-        if (!existingUser) {
+      const all = await authUtils.getAllUsers();
+      if (all.length === 0) {
+        const existing = await authUtils.findUserByEmail(DEFAULT_ADMIN.email);
+        if (!existing) {
           try {
-            const newUser = await authUtils.addUser(
-              DEFAULT_ADMIN,
-              DEFAULT_ADMIN_PASSWORD
-            );
-
-            console.log("✅ Default admin created successfully!");
-            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            console.log("📧 Email:    ", DEFAULT_ADMIN.email);
-            console.log("👤 Username: ", DEFAULT_ADMIN.username);
-            console.log("🔑 Password: ", DEFAULT_ADMIN_PASSWORD);
-            console.log("🆔 UID:      ", newUser.id);
-            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            console.log("⚠️  CHANGE THIS PASSWORD IMMEDIATELY!");
+            await authUtils.addUser(DEFAULT_ADMIN, DEFAULT_ADMIN_PASSWORD);
+            console.log("✅ Default admin created");
           } catch (error: any) {
-            if (error.message === "Email is already in use") {
+            if (error.code === "auth/email-already-in-use") {
               console.log(
-                "⚠️  Email exists in Firebase Auth but not in Firestore"
+                "⚠️ Admin email exists in Auth but not in Firestore."
               );
-              console.log(
-                "🔧 Please delete the user from Firebase Console → Authentication"
-              );
+            } else {
+              console.error("❌ Error creating default admin:", error);
             }
           }
         } else {
-          console.log("✅ Admin user already exists");
+          console.log("✅ Admin already exists");
         }
-      } else {
-        console.log("✅ Users already exist, skipping admin creation");
       }
-    } catch (error: any) {
-      console.error("❌ Error initializing default admin:", error);
+    } catch (error) {
+      console.error("❌ Error initializing admin:", error);
     }
   },
 };
 
+/* ───────────────────────────────
+   CONTEXT PROVIDER
+──────────────────────────────── */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -460,120 +511,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        setIsLoading(true);
+    const init = async () => {
+      await authUtils.initializeDefaultAdmin();
 
-        // Initialize default admin (if needed)
-        await authUtils.initializeDefaultAdmin();
-
-        // Listen to Firebase Auth state changes
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          if (firebaseUser) {
-            console.log("🔐 Firebase user detected:", firebaseUser.email);
-
-            // Get user data from Firestore
-            const userData = await authUtils.getUserByFirebaseUid(
-              firebaseUser.uid
-            );
-
-            if (userData && userData.isActive) {
-              console.log("✅ User data loaded:", userData.username);
-
-              // Check persistence mode
-              const rememberMe =
-                localStorage.getItem(REMEMBER_ME_KEY) === "true";
-              console.log(
-                `💾 Session type: ${
-                  rememberMe
-                    ? "Persistent (Remember Me enabled)"
-                    : "Session (closes with browser)"
-                }`
-              );
-
-              setCurrentUser(userData);
-              setIsAuthenticated(true);
-              authUtils.setCurrentUser(userData);
-            } else {
-              console.log("❌ User inactive or not found in Firestore");
-              setCurrentUser(null);
-              setIsAuthenticated(false);
-              authUtils.setCurrentUser(null);
-            }
+      // Only listen to primary auth state changes
+      const unsub = onAuthStateChanged(auth, async (fUser) => {
+        if (fUser) {
+          const userData = await authUtils.getUserByFirebaseUid(fUser.uid);
+          if (userData && userData.isActive) {
+            setCurrentUser(userData);
+            setIsAuthenticated(true);
+            authUtils.setCurrentUser(userData);
           } else {
-            console.log("🚪 No Firebase user logged in");
             setCurrentUser(null);
             setIsAuthenticated(false);
-            authUtils.setCurrentUser(null);
           }
-
-          setIsLoading(false);
-        });
-
-        return unsubscribe;
-      } catch (error) {
-        console.error("❌ Error initializing auth:", error);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
         setIsLoading(false);
-      }
-    };
-
-    const unsubscribePromise = initializeAuth();
-
-    // Cleanup function
-    return () => {
-      unsubscribePromise.then((unsubscribe) => {
-        if (unsubscribe) unsubscribe();
       });
+      return unsub;
+    };
+    const unsubPromise = init();
+    return () => {
+      unsubPromise.then((u) => u && u());
     };
   }, []);
 
   const login = async (
-    username: string,
+    email: string,
     password: string,
     rememberMe: boolean = false
   ): Promise<boolean> => {
-    try {
-      const result = await authUtils.validateCredentials(
-        username,
-        password,
-        rememberMe
-      );
-
-      if (result) {
-        console.log("✅ Login successful:", result.user.username);
-        console.log(
-          `💾 Remember Me: ${rememberMe ? "✓ Enabled" : "✗ Disabled"}`
-        );
-        return true;
-      }
-
-      throw new Error("Invalid username/email or password. Please try again.");
-    } catch (error: any) {
-      console.error("❌ Login error:", error.message || error);
-      // Re-throw the error so Login component can display it
-      throw error;
+    const { user } = await authUtils.validateCredentials(
+      email,
+      password,
+      rememberMe
+    );
+    if (user) {
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      authUtils.setCurrentUser(user);
+      return true;
     }
+    return false;
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-      setCurrentUser(null);
-      setIsAuthenticated(false);
-      authUtils.setCurrentUser(null);
-      localStorage.removeItem(REMEMBER_ME_KEY);
-      console.log("✅ Logout successful");
-    } catch (error) {
-      console.error("❌ Logout error:", error);
+    await signOut(auth);
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    authUtils.setCurrentUser(null);
+    localStorage.removeItem(REMEMBER_ME_KEY);
+  };
+
+  const isAdmin = () => currentUser?.role === "admin";
+  const canDelete = () => currentUser?.role === "admin";
+  const hasPermission = (permission: string): boolean => {
+    if (currentUser?.role === "admin") return true;
+    return currentUser?.permissions?.includes(permission) ?? false;
+  };
+
+  const updateUserPassword = async (
+    userId: string,
+    newPassword: string
+  ): Promise<boolean> => {
+    if (!isAdmin()) {
+      console.error("❌ Only admins can update passwords");
+      throw new Error("Only administrators can update passwords");
     }
-  };
-
-  const isAdmin = (): boolean => {
-    return currentUser?.role === "admin";
-  };
-
-  const canDelete = (): boolean => {
-    return currentUser?.role === "admin";
+    return await authUtils.updatePassword(userId, newPassword);
   };
 
   return (
@@ -584,8 +593,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         logout,
         isAdmin,
         canDelete,
+        hasPermission,
         isAuthenticated,
         isLoading,
+        updateUserPassword,
       }}
     >
       {!isLoading && children}
@@ -593,10 +604,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+/* ───────────────────────────────
+   HOOK
+──────────────────────────────── */
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
+  if (!context)
+    throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };

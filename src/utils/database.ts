@@ -7,92 +7,99 @@ import {
   doc,
   writeBatch,
   Timestamp,
-  query,
-  where,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+} from "firebase/firestore";
+import { db } from "../config/firebase";
 
-// Collection names
+/* ─────────────────────────────────────────────
+   Collection names
+─────────────────────────────────────────────── */
 const COLLECTIONS = {
-  ENQUIRIES: 'enquiries',
-  USERS: 'users',
-  ADVERTISEMENTS: 'advertisements',
+  ENQUIRIES: "enquiries",
+  USERS: "users",
+  ADVERTISEMENTS: "advertisements",
+  PAYMENTS: "payments",
 };
 
-// ✅ Firebase Database API
+/* ─────────────────────────────────────────────
+   Firestore Database API
+─────────────────────────────────────────────── */
 export const firestoreDB = {
-  // 🧾 Enquiries
+  /* 🧾 ENQUIRIES  */
   enquiries: {
     async getAll(): Promise<any[]> {
       try {
-        const querySnapshot = await getDocs(collection(db, COLLECTIONS.ENQUIRIES));
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        console.log('✅ Loaded', data.length, 'enquiries from Firestore');
+        const snap = await getDocs(collection(db, COLLECTIONS.ENQUIRIES));
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        console.log("✅ Loaded", data.length, "enquiries from Firestore");
         return data;
       } catch (error) {
-        console.error('❌ Error fetching enquiries:', error);
+        console.error("❌ Error fetching enquiries:", error);
         return [];
       }
     },
 
-    async add(enquiry: any): Promise<{ success: boolean; id?: string; error?: any }> {
+    async add(
+      enquiry: any
+    ): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
+        // createdAt / updatedAt are already set in storageUtils.saveEnquiry
         const docRef = await addDoc(collection(db, COLLECTIONS.ENQUIRIES), {
           ...enquiry,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
         });
-        console.log('✅ Enquiry added with ID:', docRef.id);
+        console.log("✅ Enquiry added with ID:", docRef.id);
         return { success: true, id: docRef.id };
       } catch (error) {
-        console.error('❌ Error adding enquiry:', error);
+        console.error("❌ Error adding enquiry:", error);
         return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
+    async update(
+      id: string,
+      updates: any
+    ): Promise<{ success: boolean; error?: any }> {
       try {
-        const docRef = doc(db, COLLECTIONS.ENQUIRIES, id);
-        await updateDoc(docRef, {
+        // updatedAt is already set in storageUtils.updateEnquiry
+        await updateDoc(doc(db, COLLECTIONS.ENQUIRIES, id), {
           ...updates,
-          updatedAt: Timestamp.now(),
         });
-        console.log('✅ Enquiry updated:', id);
+        console.log("✅ Enquiry updated:", id);
         return { success: true };
       } catch (error) {
-        console.error('❌ Error updating enquiry:', error);
+        console.error("❌ Error updating enquiry:", error);
         return { success: false, error };
       }
     },
 
-    async delete(id: string): Promise<{ success: boolean; error?: any }> {
+    async delete(
+      id: string
+    ): Promise<{ success: boolean; error?: any }> {
       try {
         await deleteDoc(doc(db, COLLECTIONS.ENQUIRIES, id));
-        console.log('✅ Enquiry deleted:', id);
+        console.log("✅ Enquiry deleted:", id);
         return { success: true };
       } catch (error) {
-        console.error('❌ Error deleting enquiry:', error);
+        console.error("❌ Error deleting enquiry:", error);
         return { success: false, error };
       }
     },
   },
 
-  // 👤 Users
+  /* 👤 USERS  */
   users: {
     async getAll(): Promise<any[]> {
       try {
-        const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(collection(db, COLLECTIONS.USERS));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       } catch (error) {
-        console.error('❌ Error fetching users:', error);
+        console.error("❌ Error fetching users:", error);
         return [];
       }
     },
 
-    async add(user: any): Promise<{ success: boolean; id?: string; error?: any }> {
+    async add(
+      user: any
+    ): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
         const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
           ...user,
@@ -100,12 +107,15 @@ export const firestoreDB = {
         });
         return { success: true, id: docRef.id };
       } catch (error) {
-        console.error('❌ Error adding user:', error);
+        console.error("❌ Error adding user:", error);
         return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
+    async update(
+      id: string,
+      updates: any
+    ): Promise<{ success: boolean; error?: any }> {
       try {
         await updateDoc(doc(db, COLLECTIONS.USERS, id), updates);
         return { success: true };
@@ -114,7 +124,9 @@ export const firestoreDB = {
       }
     },
 
-    async delete(id: string): Promise<{ success: boolean; error?: any }> {
+    async delete(
+      id: string
+    ): Promise<{ success: boolean; error?: any }> {
       try {
         await updateDoc(doc(db, COLLECTIONS.USERS, id), { isActive: false });
         return { success: true };
@@ -124,53 +136,61 @@ export const firestoreDB = {
     },
   },
 
-  // 📢 Advertisements
+  /* 📢 ADVERTISEMENTS  */
   advertisements: {
     async getAll(): Promise<any[]> {
       try {
-        const querySnapshot = await getDocs(collection(db, COLLECTIONS.ADVERTISEMENTS));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(
+          collection(db, COLLECTIONS.ADVERTISEMENTS)
+        );
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       } catch (error) {
-        console.error('❌ Error fetching advertisements:', error);
+        console.error("❌ Error fetching advertisements:", error);
         return [];
       }
     },
 
-    async add(advertisement: any): Promise<{ success: boolean; id?: string; error?: any }> {
+    async add(
+      ad: any
+    ): Promise<{ success: boolean; id?: string; error?: any }> {
       try {
-        const docRef = await addDoc(collection(db, COLLECTIONS.ADVERTISEMENTS), {
-          ...advertisement,
-          importedAt: Timestamp.now(),
-        });
-        return { success: true, id: docRef.id };
-      } catch (error) {
-        return { success: false, error };
-      }
-    },
-
-    async bulkAdd(advertisements: any[]): Promise<{ success: boolean; error?: any }> {
-      try {
-        const batch = writeBatch(db);
-        const collectionRef = collection(db, COLLECTIONS.ADVERTISEMENTS);
-
-        advertisements.forEach((ad) => {
-          const docRef = doc(collectionRef);
-          batch.set(docRef, {
+        const docRef = await addDoc(
+          collection(db, COLLECTIONS.ADVERTISEMENTS),
+          {
             ...ad,
             importedAt: Timestamp.now(),
-          });
-        });
-
-        await batch.commit();
-        console.log('✅ Bulk added', advertisements.length, 'advertisements');
-        return { success: true };
+          }
+        );
+        return { success: true, id: docRef.id };
       } catch (error) {
-        console.error('❌ Bulk add error:', error);
+        console.error("❌ Error adding advertisement:", error);
         return { success: false, error };
       }
     },
 
-    async update(id: string, updates: any): Promise<{ success: boolean; error?: any }> {
+    async bulkAdd(
+      advertisements: any[]
+    ): Promise<{ success: boolean; error?: any }> {
+      try {
+        const batch = writeBatch(db);
+        const ref = collection(db, COLLECTIONS.ADVERTISEMENTS);
+        advertisements.forEach((ad) => {
+          const docRef = doc(ref);
+          batch.set(docRef, { ...ad, importedAt: Timestamp.now() });
+        });
+        await batch.commit();
+        console.log("✅ Bulk added", advertisements.length, "advertisements");
+        return { success: true };
+      } catch (error) {
+        console.error("❌ Bulk add error:", error);
+        return { success: false, error };
+      }
+    },
+
+    async update(
+      id: string,
+      updates: any
+    ): Promise<{ success: boolean; error?: any }> {
       try {
         await updateDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, id), updates);
         return { success: true };
@@ -179,7 +199,9 @@ export const firestoreDB = {
       }
     },
 
-    async delete(id: string): Promise<{ success: boolean; error?: any }> {
+    async delete(
+      id: string
+    ): Promise<{ success: boolean; error?: any }> {
       try {
         await deleteDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, id));
         return { success: true };
@@ -188,7 +210,68 @@ export const firestoreDB = {
       }
     },
   },
+
+  /* 💳 PAYMENTS  */
+  payments: {
+    async getAll(): Promise<any[]> {
+      try {
+        const snap = await getDocs(collection(db, COLLECTIONS.PAYMENTS));
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        console.log("✅ Loaded", data.length, "payments from Firestore");
+        return data;
+      } catch (error) {
+        console.error("❌ Error fetching payments:", error);
+        return [];
+      }
+    },
+
+    async add(
+      payment: any
+    ): Promise<{ success: boolean; id?: string; error?: any }> {
+      try {
+        // createdAt is already set in storageUtils.savePayment
+        const docRef = await addDoc(collection(db, COLLECTIONS.PAYMENTS), {
+          ...payment,
+        });
+        console.log("✅ Payment added:", docRef.id);
+        return { success: true, id: docRef.id };
+      } catch (error) {
+        console.error("❌ Error adding payment:", error);
+        return { success: false, error };
+      }
+    },
+
+    async update(
+      id: string,
+      updates: any
+    ): Promise<{ success: boolean; error?: any }> {
+      try {
+        const ref = doc(db, COLLECTIONS.PAYMENTS, id);
+        await updateDoc(ref, updates); // updatedAt can be added by caller if needed
+        console.log("✅ Payment updated:", id);
+        return { success: true };
+      } catch (error) {
+        console.error("❌ Error updating payment:", error);
+        return { success: false, error };
+      }
+    },
+
+    async delete(
+      id: string
+    ): Promise<{ success: boolean; error?: any }> {
+      try {
+        await deleteDoc(doc(db, COLLECTIONS.PAYMENTS, id));
+        console.log("✅ Payment deleted:", id);
+        return { success: true };
+      } catch (error) {
+        console.error("❌ Error deleting payment:", error);
+        return { success: false, error };
+      }
+    },
+  },
 };
 
-// ✅ Export default for convenience
+/* ─────────────────────────────────────────────
+   Default export
+─────────────────────────────────────────────── */
 export default firestoreDB;
