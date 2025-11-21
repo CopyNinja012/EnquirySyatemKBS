@@ -19,7 +19,7 @@ const ITEMS_PER_PAGE = 10;
 
 /* ─────────────── Main Component ─────────────── */
 const SearchEnquiry: React.FC = () => {
-  const { canDelete } = useAuth(); // currently unused, but fine
+  useAuth(); // currently unused, but fine
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [enquiries, setEnquiries] = useState<EnquiryData[]>([]);
@@ -32,7 +32,7 @@ const SearchEnquiry: React.FC = () => {
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<EnquiryData | null>(null);
   const [editing, setEditing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [page, setPage] = useState(1);

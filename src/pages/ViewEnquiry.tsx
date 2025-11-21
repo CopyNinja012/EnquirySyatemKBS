@@ -16,7 +16,7 @@ import { storageUtils, type EnquiryData } from "../utils/storageUtils";
 import { useAuth } from "../contexts/AuthContext";
 
 const ViewEnquiry: React.FC = () => {
-  const { canDelete } = useAuth(); // currently unused, but kept if you want to hide Delete for non-admin
+  useAuth(); // currently unused, but kept if you want to hide Delete for non-admin
   const [currentDate, setCurrentDate] = useState("");
   const [currentTime, setCurrentTime] = useState("");
   const [enquiries, setEnquiries] = useState<EnquiryData[]>([]);

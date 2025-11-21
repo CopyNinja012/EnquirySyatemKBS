@@ -8,7 +8,6 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  deleteUser as firebaseDeleteUser,
 } from "firebase/auth";
 import {
   collection,

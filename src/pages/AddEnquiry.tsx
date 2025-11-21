@@ -642,8 +642,7 @@ const DuplicateWarningModal: React.FC<{
 // Main component
 // ------------------------------------------------------------------
 const AddEnquiry: React.FC = () => {
-  const { isAdmin, hasPermission } = useAuth();
-  const canManagePayments = hasPermission("Manage Payment Details"); // admin also true
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<FormData>({

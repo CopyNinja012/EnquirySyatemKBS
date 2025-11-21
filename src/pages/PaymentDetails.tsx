@@ -39,7 +39,6 @@ const PaymentDetails: React.FC = () => {
     type: "success" | "error";
   } | null>(null);
 
-  const today = new Date().toISOString().split("T")[0];
 
   if (!canManagePayments) {
     return (

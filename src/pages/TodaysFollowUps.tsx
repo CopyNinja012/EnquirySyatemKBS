@@ -3,17 +3,12 @@ import {
   Calendar,
   Clock,
   X,
-  Phone,
-  Mail,
-  MapPin,
   User,
-  Briefcase,
   RefreshCw,
   Search,
   AlertCircle,
   CheckCircle,
   Pencil,
-  AlertTriangle,
   Info,
   BookOpen,
   Trash2,
@@ -24,8 +19,8 @@ import { useAuth } from "../contexts/AuthContext";
 
 /* ─────────────── Component ─────────────── */
 const TodaysFollowUps: React.FC = () => {
-  const { canDelete } = useAuth(); // kept as-is; use if you want to hide delete for non-admin
-  const [currentDate, setCurrentDate] = useState("");
+  useAuth(); // kept as-is; use if you want to hide delete for non-admin
+  useState("");
   const [currentTime, setCurrentTime] = useState("");
   const [followUps, setFollowUps] = useState<EnquiryData[]>([]);
   const [filtered, setFiltered] = useState<EnquiryData[]>([]);
@@ -40,7 +35,7 @@ const TodaysFollowUps: React.FC = () => {
   useEffect(() => {
     const tick = () => {
       const d = new Date();
-      setCurrentDate(
+      setCurrentTime(
         d.toLocaleDateString("en-US", {
           weekday: "long",
           month: "long",
@@ -124,7 +119,7 @@ const TodaysFollowUps: React.FC = () => {
             <div className="mt-1 flex gap-2 text-sm text-gray-600 flex-wrap">
               <span className="flex items-center gap-1 bg-green-100 px-3 py-1 rounded-lg">
                 <Calendar size={14} className="text-green-600" />
-                {currentDate}
+                {currentTime}
               </span>
               <span className="flex items-center gap-1 bg-blue-100 px-3 py-1 rounded-lg">
                 <Clock size={14} className="text-blue-600" />
