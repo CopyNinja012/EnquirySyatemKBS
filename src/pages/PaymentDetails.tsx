@@ -39,11 +39,10 @@ const PaymentDetails: React.FC = () => {
     type: "success" | "error";
   } | null>(null);
 
-
   if (!canManagePayments) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600 text-sm">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <p className="text-gray-600 text-sm text-center">
           You do not have permission to view payment details.
         </p>
       </div>
@@ -76,12 +75,7 @@ const PaymentDetails: React.FC = () => {
           e.education === "Other" && e.customEducation
             ? e.customEducation
             : e.education;
-        const combined = [
-          e.fullName,
-          e.mobile,
-          e.email,
-          edu || "",
-        ]
+        const combined = [e.fullName, e.mobile, e.email, edu || ""]
           .join(" ")
           .toLowerCase();
         return combined.includes(q);
@@ -131,20 +125,17 @@ const PaymentDetails: React.FC = () => {
     }
 
     try {
-      const paymentRecord = await storageUtils.addPaymentToEnquiry(
-        enquiry.id,
-        {
-          date: form.date,
-          amount: form.amount,
-          mode: form.mode as "Online" | "Offline",
-          method:
-            form.mode === "Offline"
-              ? (form.offlineType || undefined)
-              : undefined,
-          note: form.note || "",
-          createdBy: undefined,
-        }
-      );
+      const paymentRecord = await storageUtils.addPaymentToEnquiry(enquiry.id, {
+        date: form.date,
+        amount: form.amount,
+        mode: form.mode as "Online" | "Offline",
+        method:
+          form.mode === "Offline"
+            ? (form.offlineType || undefined)
+            : undefined,
+        note: form.note || "",
+        createdBy: undefined,
+      });
 
       if (!paymentRecord) {
         showToast("Failed to add payment", "error");
@@ -152,8 +143,7 @@ const PaymentDetails: React.FC = () => {
       }
 
       const allUpdated = await refreshEnquiries();
-      const newSelected =
-        allUpdated.find((e) => e.id === enquiry.id) || null;
+      const newSelected = allUpdated.find((e) => e.id === enquiry.id) || null;
       setSelected(newSelected);
 
       showToast("Payment added successfully", "success");
@@ -295,82 +285,93 @@ const PaymentDetails: React.FC = () => {
   const todayStr = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-center px-6 py-4 border-b">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 sm:py-4 border-b">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payment Details</h1>
-            <p className="text-sm text-gray-500">
-              One row per enquiry. Click a row to see all payment entries and
-              full fee receipt.
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Payment Details
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              One row per enquiry. Tap / click a row to see all payment entries
+              and full fee receipt.
             </p>
           </div>
           <button
             onClick={() => setShowManualAdd(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             + Add Payment
           </button>
         </div>
 
         {/* Search */}
-        <div className="flex flex-wrap gap-3 px-6 py-4 border-b bg-gray-50">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center px-4 sm:px-6 py-3 sm:py-4 border-b bg-gray-50">
           <input
             type="search"
             placeholder="Search by name, mobile, email, education..."
             value={filter.search}
-            onChange={(e) =>
-              setFilter({ ...filter, search: e.target.value })
-            }
-            className="flex-1 min-w-[220px] h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-green-200 focus:border-green-500"
+            onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+            className="w-full sm:flex-1 h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-green-200 focus:border-green-500"
           />
         </div>
 
-        {/* Table */}
-        <div className="p-6">
+        {/* Table / List */}
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           {filtered.length === 0 ? (
             <p className="text-center text-sm text-gray-500 py-8">
               No enquiries with payment details found.
             </p>
           ) : (
             <>
-              <table className="hidden md:table min-w-full text-sm">
-                <thead className="bg-gray-100 text-gray-700">
-                  <tr>
-                    <th className="py-2 px-3 text-left">Name</th>
-                    <th className="py-2 px-3 text-left">Education</th>
-                    <th className="py-2 px-3 text-left">Total Fees (₹)</th>
-                    <th className="py-2 px-3 text-left">Paid (₹)</th>
-                    <th className="py-2 px-3 text-left">Remaining (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((e) => {
-                    const edu =
-                      e.education === "Other" && e.customEducation
-                        ? e.customEducation
-                        : e.education;
-                    return (
-                      <tr
-                        key={e.id}
-                        className="border-b hover:bg-green-50 cursor-pointer"
-                        onClick={() => openReceipt(e)}
-                      >
-                        <td className="py-2 px-3">{e.fullName}</td>
-                        <td className="py-2 px-3">{edu || "—"}</td>
-                        <td className="py-2 px-3">{e.totalFees || "0"}</td>
-                        <td className="py-2 px-3">{e.paidFees || "0"}</td>
-                        <td className="py-2 px-3">
-                          {e.remainingFees || "0"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/* Desktop / Tablet table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 text-gray-700">
+                    <tr>
+                      <th className="py-2.5 px-3 text-left">Name</th>
+                      <th className="py-2.5 px-3 text-left">Education</th>
+                      <th className="py-2.5 px-3 text-left">Total Fees (₹)</th>
+                      <th className="py-2.5 px-3 text-left">Paid (₹)</th>
+                      <th className="py-2.5 px-3 text-left">Remaining (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((e) => {
+                      const edu =
+                        e.education === "Other" && e.customEducation
+                          ? e.customEducation
+                          : e.education;
+                      return (
+                        <tr
+                          key={e.id}
+                          className="border-b hover:bg-green-50 cursor-pointer"
+                          onClick={() => openReceipt(e)}
+                        >
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {e.fullName}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {edu || "—"}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {e.totalFees || "0"}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {e.paidFees || "0"}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {e.remainingFees || "0"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-              {/* Mobile */}
+              {/* Mobile list */}
               <div className="md:hidden space-y-3">
                 {filtered.map((e) => {
                   const edu =
@@ -378,23 +379,21 @@ const PaymentDetails: React.FC = () => {
                       ? e.customEducation
                       : e.education;
                   return (
-                    <div
+                    <button
                       key={e.id}
                       onClick={() => openReceipt(e)}
-                      className="border border-gray-200 rounded-lg p-4 shadow-sm cursor-pointer"
+                      className="w-full text-left border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm cursor-pointer hover:bg-green-50 transition-colors"
                     >
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 text-sm">
                         {e.fullName}
                       </p>
-                      <p className="text-xs text-gray-600">
-                        {edu || "—"}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-600">{edu || "—"}</p>
+                      <p className="text-[11px] sm:text-xs text-gray-600 mt-1">
                         Total: ₹{e.totalFees || "0"} • Paid: ₹
                         {e.paidFees || "0"} • Remaining: ₹
                         {e.remainingFees || "0"}
                       </p>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -415,7 +414,7 @@ const PaymentDetails: React.FC = () => {
         />
       )}
 
-      {/* Manual Add Payment Modal – uses ALL enquiries, with status + education filter */}
+      {/* Manual Add Payment Modal – uses ALL enquiries */}
       {showManualAdd && (
         <ManualPaymentModal
           enquiries={allEnquiries}
@@ -428,11 +427,11 @@ const PaymentDetails: React.FC = () => {
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg text-white shadow-lg animate-slide-in-right ${
+          className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 max-w-xs w-[90vw] sm:w-auto px-4 py-3 rounded-lg text-white shadow-lg animate-slide-in-right ${
             toast.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
-          {toast.message}
+          <p className="text-xs sm:text-sm">{toast.message}</p>
         </div>
       )}
     </div>
@@ -482,17 +481,17 @@ const ReceiptModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-3 border-b bg-green-600 text-white">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border-b bg-green-600 text-white">
           <div>
-            <h3 className="text-lg font-semibold">Fee Receipt</h3>
-            <p className="text-xs text-green-100">
+            <h3 className="text-base sm:text-lg font-semibold">Fee Receipt</h3>
+            <p className="text-xs text-green-100 truncate max-w-xs sm:max-w-sm">
               {enquiry.fullName}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 sm:items-center">
             <button
               onClick={onExportCSV}
               className="px-3 py-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100"
@@ -507,7 +506,7 @@ const ReceiptModal: React.FC<{
             </button>
             <button
               onClick={onClose}
-              className="ml-2 px-2 py-1 rounded hover:bg-white/20"
+              className="ml-auto sm:ml-2 px-2 py-1 rounded hover:bg-white/20 text-sm"
             >
               ✕
             </button>
@@ -515,9 +514,9 @@ const ReceiptModal: React.FC<{
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
           {/* Enquiry Info */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-sm space-y-1">
+          <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50 text-xs sm:text-sm space-y-1">
             <p>
               <span className="font-semibold text-gray-700">Name:</span>{" "}
               {enquiry.fullName}
@@ -543,7 +542,7 @@ const ReceiptModal: React.FC<{
           </div>
 
           {/* Fee Summary */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-sm space-y-1">
+          <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50 text-xs sm:text-sm space-y-1">
             <p>
               <span className="font-semibold text-gray-700">Total Fees:</span>{" "}
               ₹{enquiry.totalFees || "0"}
@@ -562,49 +561,69 @@ const ReceiptModal: React.FC<{
 
           {/* Payment History */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
               Payment Entries
             </h4>
             {history.length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 No payment history available.
               </p>
             ) : (
               <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-100 text-gray-700">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-left">Amount (₹)</th>
-                      <th className="px-3 py-2 text-left">Mode</th>
-                      <th className="px-3 py-2 text-left">Type</th>
-                      <th className="px-3 py-2 text-left">Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((p) => (
-                      <tr key={p.id} className="border-t">
-                        <td className="px-3 py-1.5">{p.date}</td>
-                        <td className="px-3 py-1.5">₹{p.amount}</td>
-                        <td className="px-3 py-1.5">{p.mode}</td>
-                        <td className="px-3 py-1.5">{p.method || "—"}</td>
-                        <td className="px-3 py-1.5">{p.note || "—"}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px] sm:text-xs">
+                    <thead className="bg-gray-100 text-gray-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left whitespace-nowrap">
+                          Date
+                        </th>
+                        <th className="px-3 py-2 text-left whitespace-nowrap">
+                          Amount (₹)
+                        </th>
+                        <th className="px-3 py-2 text-left whitespace-nowrap">
+                          Mode
+                        </th>
+                        <th className="px-3 py-2 text-left whitespace-nowrap">
+                          Type
+                        </th>
+                        <th className="px-3 py-2 text-left">Note</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {history.map((p) => (
+                        <tr key={p.id} className="border-t">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            {p.date}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            ₹{p.amount}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            {p.mode}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            {p.method || "—"}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            {p.note || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
 
           {/* Add Payment Form (inside receipt) */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-white">
-            <h4 className="text-sm font-semibold text-gray-800 mb-3">
+          <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-3">
               Add New Payment for this Enquiry
             </h4>
             <form
               onSubmit={submit}
-              className="grid sm:grid-cols-2 gap-3 text-sm"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm"
             >
               <input
                 type="date"
@@ -660,7 +679,7 @@ const ReceiptModal: React.FC<{
               <div className="sm:col-span-2 flex justify-end gap-2 mt-1">
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs sm:text-sm hover:bg-blue-700"
                 >
                   Add Payment
                 </button>
@@ -675,7 +694,6 @@ const ReceiptModal: React.FC<{
 
 /* ─────────────────────────────────────────────
    Manual Add Payment Modal – search ALL enquiries
-   by name/mobile + filter by education + status
 ─────────────────────────────────────────────── */
 const ManualPaymentModal: React.FC<{
   enquiries: EnquiryData[];
@@ -774,24 +792,26 @@ const ManualPaymentModal: React.FC<{
       : selected.education);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-3 border-b bg-sky-600 text-white">
-          <h3 className="text-lg font-semibold">Add Payment (Manual)</h3>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-sky-600 text-white">
+          <h3 className="text-base sm:text-lg font-semibold">
+            Add Payment (Manual)
+          </h3>
           <button
             onClick={onClose}
-            className="px-2 py-1 rounded hover:bg-white/20"
+            className="px-2 py-1 rounded hover:bg-white/20 text-sm"
           >
             ✕
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 grid md:grid-cols-2 gap-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           {/* Left: enquiry selector */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-800">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800">
               Select Enquiry
             </h4>
 
@@ -801,13 +821,13 @@ const ManualPaymentModal: React.FC<{
                 placeholder="Search by name or mobile..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg h-10 px-3 text-sm focus:ring-2 focus:ring-green-200"
+                className="w-full border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm focus:ring-2 focus:ring-green-200"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={educationFilter}
                   onChange={(e) => setEducationFilter(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-sm"
+                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm"
                 >
                   {educationOptions.map((opt) => (
                     <option key={opt} value={opt}>
@@ -818,7 +838,7 @@ const ManualPaymentModal: React.FC<{
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-sm"
+                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm"
                 >
                   {statusOptions.map((opt) => (
                     <option key={opt} value={opt}>
@@ -829,9 +849,9 @@ const ManualPaymentModal: React.FC<{
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-lg max-h-72 overflow-y-auto">
+            <div className="border border-gray-200 rounded-lg max-h-72 sm:max-h-80 overflow-y-auto">
               {filteredEnquiries.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500">
+                <div className="p-4 text-xs sm:text-sm text-gray-500">
                   No enquiries match the search/filter.
                 </div>
               ) : (
@@ -845,17 +865,17 @@ const ManualPaymentModal: React.FC<{
                       key={e.id}
                       type="button"
                       onClick={() => setSelected(e)}
-                      className={`w-full text-left px-3 py-2 text-sm border-b last:border-b-0 hover:bg-sky-50 ${
+                      className={`w-full text-left px-3 py-2 text-xs sm:text-sm border-b last:border-b-0 hover:bg-sky-50 ${
                         selected?.id === e.id ? "bg-sky-100" : "bg-white"
                       }`}
                     >
-                      <div className="font-semibold text-gray-900">
+                      <div className="font-semibold text-gray-900 truncate">
                         {e.fullName}
                       </div>
-                      <div className="text-xs text-gray-600">
+                      <div className="text-[11px] sm:text-xs text-gray-600 truncate">
                         {e.mobile} • {e.email}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[11px] sm:text-xs text-gray-500">
                         {edu || "Education not set"} • {e.status}
                       </div>
                     </button>
@@ -867,11 +887,11 @@ const ManualPaymentModal: React.FC<{
 
           {/* Right: selected enquiry info + payment form */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-800">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800">
               Payment Details
             </h4>
 
-            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 text-sm">
+            <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50 text-xs sm:text-sm">
               {selected ? (
                 <div className="space-y-1">
                   <p className="font-semibold text-gray-900">
@@ -900,7 +920,7 @@ const ManualPaymentModal: React.FC<{
               )}
             </div>
 
-            <form onSubmit={submit} className="space-y-3 text-sm">
+            <form onSubmit={submit} className="space-y-3 text-xs sm:text-sm">
               <input
                 type="date"
                 value={form.date}
@@ -956,7 +976,7 @@ const ManualPaymentModal: React.FC<{
                 <button
                   type="submit"
                   disabled={!selected}
-                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs sm:text-sm hover:bg-blue-700 disabled:opacity-50"
                 >
                   Add Payment
                 </button>

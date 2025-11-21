@@ -14,11 +14,7 @@ import {
   FaBell,
   FaUserCircle,
 } from "react-icons/fa";
-import {
-  Upload,
-  FileSpreadsheet,
-  Shield,
-} from "lucide-react";
+import { Upload, FileSpreadsheet, Shield } from "lucide-react";
 import { storageUtils } from "../utils/localStorage";
 import { advertisementStorage } from "../utils/advertisementStorage";
 import { useAuth } from "../contexts/AuthContext";
@@ -125,16 +121,14 @@ const Sidebar: React.FC = () => {
       group: "main",
       badge: stats.totalEnquiries,
     },
-
-    // ➕ NEW Payment Details entry
+    // Payment Details entry (note: permission string should match your context)
     {
       path: "/payment-details",
       label: "Payment Details",
-      permission: "View Payment Details",
+      permission: "Manage Payment Details",
       icon: <FaCheckCircle />,
       group: "main",
     },
-
     {
       path: "/today-followups",
       label: "Today's Follow-ups",
@@ -210,28 +204,41 @@ const Sidebar: React.FC = () => {
       .slice(0, 2)
       .toUpperCase() || "U";
 
-  // ---------------------------------------
-  // RENDER
-  // ---------------------------------------
+  const sidebarBase =
+    "fixed inset-y-0 left-0 z-40 flex flex-col bg-white border-r border-gray-200 shadow-lg transition-all duration-300";
+
+  // On mobile: use slide-in (translate-x) for open/close.
+  // On md+ : always visible, but width collapses between 20 and 64.
+  const widthClass = isCollapsed ? "md:w-20 w-64" : "md:w-64 w-64";
+  const translateClass = isCollapsed
+    ? "-translate-x-full md:translate-x-0"
+    : "translate-x-0";
+
   return (
     <>
-      <aside
-        className={`${
-          isCollapsed ? "w-20" : "w-64"
-        } bg-white border-r border-gray-200 shadow-lg fixed h-screen left-0 top-0 flex flex-col transition-all duration-300`}
-      >
+      {/* Backdrop for mobile when sidebar open */}
+      {!isCollapsed && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
+      <aside className={`${sidebarBase} ${widthClass} ${translateClass}`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           {!isCollapsed && (
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">EMS</h2>
-              <p className="text-xs text-gray-500">Enquiry Management</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-gray-800 truncate">EMS</h2>
+              <p className="text-xs text-gray-500 truncate">
+                Enquiry Management
+              </p>
             </div>
           )}
           <button
             onClick={toggleSidebar}
             className="p-2 hover:bg-gray-100 rounded-lg"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            title={isCollapsed ? "Expand Sidebar / Open Menu" : "Collapse Sidebar"}
           >
             {isCollapsed ? (
               <FaChevronRight className="w-4 h-4 text-gray-600" />
@@ -245,7 +252,6 @@ const Sidebar: React.FC = () => {
         {!isCollapsed && (
           <div className="flex flex-col items-center px-4 my-4">
             {isAdmin() ? (
-              // Admin view - Full box with Shield and Administrator text
               <div className="bg-purple-50 border border-purple-200 rounded-xl w-full flex flex-col items-center py-5">
                 <div className="flex items-center gap-2">
                   <Shield size={22} className="text-purple-600" />
@@ -258,7 +264,6 @@ const Sidebar: React.FC = () => {
                 </p>
               </div>
             ) : (
-              // User view - Compact box with only company name
               <div className="bg-purple-50 border border-purple-200 rounded-lg w-full flex items-center justify-center py-3 px-4">
                 <p className="text-base font-bold text-black">
                   Kali Byte Solutions
@@ -269,12 +274,12 @@ const Sidebar: React.FC = () => {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <nav className="flex-1 px-2.5 sm:px-3 py-3 sm:py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           {/* MAIN */}
           {menuMain.length > 0 && (
             <ul className="mb-2">
               {!isCollapsed && (
-                <li className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase">
+                <li className="px-2 py-1 text-[11px] sm:text-xs font-semibold text-gray-400 uppercase">
                   Main Menu
                 </li>
               )}
@@ -289,7 +294,9 @@ const Sidebar: React.FC = () => {
                       <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
                         {m.icon}
                       </span>
-                      {!isCollapsed && <span className="truncate">{m.label}</span>}
+                      {!isCollapsed && (
+                        <span className="truncate text-sm">{m.label}</span>
+                      )}
                     </div>
                     {!isCollapsed && m.badge && (
                       <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500 text-white">
@@ -305,10 +312,12 @@ const Sidebar: React.FC = () => {
           {/* FOLLOW UPS */}
           {menuFollow.length > 0 && (
             <>
-              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              {!isCollapsed && (
+                <div className="my-3 border-t border-gray-200" />
+              )}
               <ul>
                 {!isCollapsed && (
-                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                  <li className="px-2 py-1 text-[11px] sm:text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
                     <FaBell size={12} />
                     Follow‑ups
                   </li>
@@ -324,7 +333,9 @@ const Sidebar: React.FC = () => {
                         <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
                           {m.icon}
                         </span>
-                        {!isCollapsed && <span>{m.label}</span>}
+                        {!isCollapsed && (
+                          <span className="text-sm">{m.label}</span>
+                        )}
                       </div>
                       {!isCollapsed && m.badge && (
                         <span
@@ -347,10 +358,12 @@ const Sidebar: React.FC = () => {
           {/* ADVERTISEMENT */}
           {menuAdv.length > 0 && (
             <>
-              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              {!isCollapsed && (
+                <div className="my-3 border-t border-gray-200" />
+              )}
               <ul>
                 {!isCollapsed && (
-                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                  <li className="px-2 py-1 text-[11px] sm:text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
                     <FileSpreadsheet size={12} />
                     Advertisement
                   </li>
@@ -362,11 +375,13 @@ const Sidebar: React.FC = () => {
                       className={linkStyle(m.path)}
                       title={isCollapsed ? m.label : ""}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1">
                         <span className={`${isCollapsed ? "mx-auto" : "mr-3"}`}>
                           {m.icon}
                         </span>
-                        {!isCollapsed && <span>{m.label}</span>}
+                        {!isCollapsed && (
+                          <span className="text-sm">{m.label}</span>
+                        )}
                       </div>
                       {!isCollapsed && m.badge && (
                         <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500 text-white">
@@ -383,10 +398,12 @@ const Sidebar: React.FC = () => {
           {/* ADMIN AREA */}
           {menuAdmin.length > 0 && (
             <>
-              {!isCollapsed && <div className="my-3 border-t border-gray-200" />}
+              {!isCollapsed && (
+                <div className="my-3 border-t border-gray-200" />
+              )}
               <ul>
                 {!isCollapsed && (
-                  <li className="px-2 py-1 text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
+                  <li className="px-2 py-1 text-[11px] sm:text-xs font-semibold text-sky-400 uppercase flex items-center gap-2">
                     <Shield size={12} />
                     Administrator
                   </li>
@@ -398,13 +415,15 @@ const Sidebar: React.FC = () => {
                       className={linkStyle(m.path)}
                       title={isCollapsed ? m.label : ""}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1">
                         <span
                           className={`${isCollapsed ? "mx-auto" : "mr-3"} text-sky-600`}
                         >
                           {m.icon}
                         </span>
-                        {!isCollapsed && <span>{m.label}</span>}
+                        {!isCollapsed && (
+                          <span className="text-sm">{m.label}</span>
+                        )}
                       </div>
                     </Link>
                   </li>
@@ -414,7 +433,7 @@ const Sidebar: React.FC = () => {
           )}
         </nav>
 
-        {/* Bottom user box */}
+        {/* Bottom user box (hidden when collapsed) */}
         {!isCollapsed && (
           <div className="p-4 border-t border-gray-100 bg-gray-50">
             <div className="flex items-center gap-3 mb-3">

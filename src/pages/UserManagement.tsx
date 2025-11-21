@@ -51,8 +51,12 @@ const UserManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -64,16 +68,21 @@ const UserManagement: React.FC = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [changePassword, setChangePassword] = useState(false); // New state for password change toggle
+  const [changePassword, setChangePassword] = useState(false);
 
-  useEffect(() => void loadUsers(), []);
+  useEffect(() => {
+    void loadUsers();
+  }, []);
 
   async function loadUsers() {
     try {
+      if (initialLoading) setInitialLoading(true);
       const all = await authUtils.getAllUsers();
       setUsers(all);
     } catch {
       showToast("Failed to load users", "error");
+    } finally {
+      setInitialLoading(false);
     }
   }
 
@@ -122,7 +131,10 @@ const UserManagement: React.FC = () => {
      CRUD actions
   --------------------------------------------- */
   async function handleAdd() {
-    if (!(await validate())) return showToast("Please fix form errors.", "error");
+    if (!(await validate())) {
+      showToast("Please fix form errors.", "error");
+      return;
+    }
     setIsLoading(true);
     try {
       await authUtils.addUser(
@@ -152,10 +164,10 @@ const UserManagement: React.FC = () => {
     if (!selectedUser || !(await validate(true))) return;
     setIsLoading(true);
     try {
-      // If changePassword is true, pass the password, otherwise pass undefined
-      const newPassword = changePassword && formData.password.trim() 
-        ? formData.password 
-        : undefined;
+      const newPassword =
+        changePassword && formData.password.trim()
+          ? formData.password
+          : undefined;
 
       await authUtils.updateUser(
         selectedUser.id,
@@ -166,12 +178,12 @@ const UserManagement: React.FC = () => {
           role: formData.role,
           permissions: formData.permissions,
         },
-        newPassword // Pass password only if changing
+        newPassword
       );
-      
+
       showToast(
-        changePassword 
-          ? "User and password updated successfully!" 
+        changePassword
+          ? "User and password updated successfully!"
           : "User updated successfully!",
         "success"
       );
@@ -210,64 +222,187 @@ const UserManagement: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between mb-4">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
             <div>
-              <h1 className="text-2xl font-bold">User Management</h1>
-              <p className="text-sm text-gray-500">Add users and assign permissions</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                User Management
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Add users and assign permissions
+              </p>
             </div>
             <button
               onClick={() => {
                 resetForm();
                 setShowAddModal(true);
               }}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-green-700 transition-colors"
             >
-              <UserPlus size={18} /> Add User
+              <UserPlus size={18} className="sm:w-5 sm:h-5" /> Add User
             </button>
           </div>
 
-          {/* quick stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* Quick stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
             <Stat label="Total Users" count={activeUsers.length} color="blue" />
             <Stat label="Admins" count={adminCount} color="purple" />
             <Stat label="Users" count={userCount} color="green" />
           </div>
 
+          {/* Users table / mobile list */}
           <div className="bg-white rounded-lg border overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Role</th>
-                  <th className="px-4 py-2 text-left">Username</th>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeUsers.map((u) => {
-                  const isCurrentUser = u.id === currentUser?.id;
-                  return (
-                    <tr key={u.id} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-2 font-medium">{u.fullName}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            u.role === "admin"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {u.role === "admin" && <Shield size={12} />}
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">{u.username}</td>
-                      <td className="px-4 py-2 text-gray-600">{u.email}</td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-2">
+            {initialLoading ? (
+              <div className="py-10 flex justify-center items-center">
+                <div className="h-8 w-8 border-2 border-t-green-600 border-gray-200 rounded-full animate-spin" />
+              </div>
+            ) : activeUsers.length === 0 ? (
+              <p className="py-8 text-center text-sm sm:text-base text-gray-500">
+                No users found
+              </p>
+            ) : (
+              <>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          Name
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          Role
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          Username
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          Email
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeUsers.map((u) => {
+                        const isCurrentUser = u.id === currentUser?.id;
+                        return (
+                          <tr
+                            key={u.id}
+                            className="border-t hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-4 py-2 font-medium text-gray-900">
+                              {u.fullName}
+                            </td>
+                            <td className="px-4 py-2">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                  u.role === "admin"
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-blue-100 text-blue-700"
+                                }`}
+                              >
+                                {u.role === "admin" && <Shield size={12} />}
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-gray-600">
+                              {u.username}
+                            </td>
+                            <td className="px-4 py-2 text-gray-600">
+                              {u.email}
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setFormData({
+                                      username: u.username,
+                                      password: "",
+                                      fullName: u.fullName,
+                                      email: u.email,
+                                      role: u.role,
+                                      permissions: u.permissions || [],
+                                    });
+                                    setChangePassword(false);
+                                    setShowEditModal(true);
+                                  }}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="Edit user"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                                  disabled={isCurrentUser}
+                                  title={
+                                    isCurrentUser
+                                      ? "You cannot deactivate your own account"
+                                      : "Deactivate user"
+                                  }
+                                  onClick={() => {
+                                    if (isCurrentUser) return;
+                                    setSelectedUser(u);
+                                    setShowDeleteConfirm(true);
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile list */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {activeUsers.map((u) => {
+                    const isCurrentUser = u.id === currentUser?.id;
+                    return (
+                      <div
+                        key={u.id}
+                        className="p-4 flex flex-col gap-2 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-sky-700 font-semibold text-sm">
+                              {u.fullName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {u.fullName}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              @{u.username}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                              u.role === "admin"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {u.role === "admin" && (
+                              <Shield size={12} className="mr-1" />
+                            )}
+                            {u.role}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-600 truncate">
+                          {u.email}
+                        </p>
+
+                        <div className="flex justify-end gap-2 mt-2">
                           <button
                             onClick={() => {
                               setSelectedUser(u);
@@ -282,41 +417,30 @@ const UserManagement: React.FC = () => {
                               setChangePassword(false);
                               setShowEditModal(true);
                             }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Edit user"
+                            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                           >
-                            <Edit size={16} />
+                            <Edit size={14} />
+                            Edit
                           </button>
                           <button
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                             disabled={isCurrentUser}
-                            title={
-                              isCurrentUser
-                                ? "You cannot deactivate your own account"
-                                : "Deactivate user"
-                            }
                             onClick={() => {
                               if (isCurrentUser) return;
                               setSelectedUser(u);
                               setShowDeleteConfirm(true);
                             }}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
+                            Deactivate
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {activeUsers.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-center p-6 text-gray-500">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -359,12 +483,22 @@ const UserManagement: React.FC = () => {
 
       {toast && (
         <div
-          className={`fixed top-4 right-4 px-6 py-3 text-white rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in ${
+          className={`fixed top-3 sm:top-4 right-2 left-2 sm:left-auto sm:right-4 px-4 sm:px-6 py-2.5 sm:py-3 text-white rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in max-w-xs sm:max-w-sm mx-auto sm:mx-0 text-xs sm:text-sm ${
             toast.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
-          {toast.type === "success" ? <Check size={18} /> : <AlertCircle size={18} />}
-          {toast.message}
+          {toast.type === "success" ? (
+            <Check size={16} className="sm:w-5 sm:h-5" />
+          ) : (
+            <AlertCircle size={16} className="sm:w-5 sm:h-5" />
+          )}
+          <span className="truncate">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-1 hover:opacity-80"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </>
@@ -373,12 +507,28 @@ const UserManagement: React.FC = () => {
 
 /* --------------------------------------------- */
 
-const Stat = ({ label, count, color }: any) => (
-  <div className={`p-4 bg-${color}-50 border-l-4 border-${color}-500 rounded-lg`}>
-    <p className="text-gray-600 text-sm font-medium">{label}</p>
-    <p className="text-2xl font-bold text-gray-800 mt-1">{count}</p>
-  </div>
-);
+const Stat = ({ label, count, color }: any) => {
+  const colorClasses: Record<
+    string,
+    { bg: string; border: string }
+  > = {
+    blue: { bg: "bg-blue-50", border: "border-blue-500" },
+    purple: { bg: "bg-purple-50", border: "border-purple-500" },
+    green: { bg: "bg-green-50", border: "border-green-500" },
+  };
+  const cls = colorClasses[color] || colorClasses.blue;
+
+  return (
+    <div
+      className={`p-3 sm:p-4 ${cls.bg} border-l-4 ${cls.border} rounded-lg`}
+    >
+      <p className="text-xs sm:text-sm text-gray-600 font-medium">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-1">
+        {count}
+      </p>
+    </div>
+  );
+};
 
 /* ---------- Modal with permission checkboxes ---------- */
 const UserModal = ({
@@ -414,33 +564,37 @@ const UserModal = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-start p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl w-full max-w-2xl my-8 shadow-2xl">
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 flex justify-between items-center rounded-t-xl">
-          <h3 className="font-semibold text-lg">{title}</h3>
-          <button 
-            onClick={onCancel} 
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-start p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl w-full max-w-2xl my-6 sm:my-8 shadow-2xl">
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl">
+          <h3 className="font-semibold text-base sm:text-lg">{title}</h3>
+          <button
+            onClick={onCancel}
             className="hover:bg-white/20 p-1 rounded transition-colors"
             disabled={isLoading}
           >
-            <X />
+            <X size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Basic fields */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field
               label="Username"
               value={formData.username}
-              onChange={(v: any) => onFormChange({ ...formData, username: v })}
+              onChange={(v: any) =>
+                onFormChange({ ...formData, username: v })
+              }
               error={errors.username}
               disabled={isLoading}
             />
             <Field
               label="Full Name"
               value={formData.fullName}
-              onChange={(v: any) => onFormChange({ ...formData, fullName: v })}
+              onChange={(v: any) =>
+                onFormChange({ ...formData, fullName: v })
+              }
               error={errors.fullName}
               disabled={isLoading}
             />
@@ -453,9 +607,11 @@ const UserModal = ({
               disabled={isLoading}
             />
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Role</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                Role
+              </label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={formData.role}
                 onChange={(e) =>
                   handleRoleChange(e.target.value as "admin" | "user")
@@ -470,8 +626,8 @@ const UserModal = ({
 
           {/* Password Section */}
           {isEdit ? (
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="border rounded-lg p-3 sm:p-4 bg-gray-50">
+              <div className="flex items-center gap-2 mb-2.5 sm:mb-3">
                 <input
                   type="checkbox"
                   id="changePassword"
@@ -485,8 +641,8 @@ const UserModal = ({
                   className="w-4 h-4 text-green-600 accent-green-600"
                   disabled={isLoading}
                 />
-                <label 
-                  htmlFor="changePassword" 
+                <label
+                  htmlFor="changePassword"
                   className="text-sm font-medium text-gray-700 flex items-center gap-2 cursor-pointer"
                 >
                   <Key size={16} />
@@ -495,7 +651,7 @@ const UserModal = ({
               </div>
 
               {changePassword && (
-                <div className="mt-3">
+                <div className="mt-2 sm:mt-3">
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     New Password
                   </label>
@@ -504,9 +660,12 @@ const UserModal = ({
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) =>
-                        onFormChange({ ...formData, password: e.target.value })
+                        onFormChange({
+                          ...formData,
+                          password: e.target.value,
+                        })
                       }
-                      className={`w-full border rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
                         errors.password ? "border-red-400" : "border-gray-300"
                       }`}
                       placeholder="Enter new password"
@@ -515,14 +674,16 @@ const UserModal = ({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       disabled={isLoading}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.password}
+                    </p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
                     Password must be at least 6 characters
@@ -542,7 +703,7 @@ const UserModal = ({
                   onChange={(e) =>
                     onFormChange({ ...formData, password: e.target.value })
                   }
-                  className={`w-full border rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
                     errors.password ? "border-red-400" : "border-gray-300"
                   }`}
                   placeholder="Enter password"
@@ -551,7 +712,7 @@ const UserModal = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   disabled={isLoading}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -572,11 +733,11 @@ const UserModal = ({
               <Shield size={16} />
               Permissions
             </p>
-            <div className="grid sm:grid-cols-2 gap-2 border rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border rounded-lg p-3 sm:p-4 bg-gray-50 max-h-60 overflow-y-auto">
               {allPermissions.map((perm: string) => (
-                <label 
-                  key={perm} 
-                  className="flex items-center gap-2 text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors"
+                <label
+                  key={perm}
+                  className="flex items-center gap-2 text-xs sm:text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -592,10 +753,10 @@ const UserModal = ({
           </div>
         </div>
 
-        <div className="px-6 py-4 flex justify-end gap-3 bg-gray-50 rounded-b-xl border-t">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex justify-end gap-2 sm:gap-3 bg-gray-50 rounded-b-xl border-t">
           <button
             onClick={onCancel}
-            className="bg-gray-200 px-5 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            className="bg-gray-200 px-4 sm:px-5 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm sm:text-base"
             disabled={isLoading}
           >
             Cancel
@@ -603,7 +764,7 @@ const UserModal = ({
           <button
             onClick={onSave}
             disabled={isLoading}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-green-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading && (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -618,14 +779,23 @@ const UserModal = ({
 };
 
 /* small helper components ---------------------------------- */
-const Field = ({ label, value, onChange, error, type = "text", disabled = false }: any) => (
+const Field = ({
+  label,
+  value,
+  onChange,
+  error,
+  type = "text",
+  disabled = false,
+}: any) => (
   <div>
-    <label className="block text-sm font-medium mb-1 text-gray-700">{label}</label>
+    <label className="block text-sm font-medium mb-1 text-gray-700">
+      {label}
+    </label>
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${
+      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
         error ? "border-red-400" : "border-gray-300"
       }`}
       disabled={disabled}
@@ -635,26 +805,30 @@ const Field = ({ label, value, onChange, error, type = "text", disabled = false 
 );
 
 const ConfirmDelete = ({ user, onCancel, onConfirm, loading }: any) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
-    <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-3 sm:p-4 z-50">
+    <div className="bg-white rounded-xl p-5 sm:p-6 w-full max-w-md shadow-2xl">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-3 bg-red-100 rounded-full">
           <AlertCircle className="text-red-600" size={24} />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-gray-800">Confirm Deactivation</h3>
-          <p className="text-sm text-gray-600">This action can be reversed later</p>
+          <h3 className="text-lg font-bold text-gray-800">
+            Confirm Deactivation
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-600">
+            This action can be reversed later
+          </p>
         </div>
       </div>
-      <p className="mb-6 text-gray-700">
+      <p className="mb-6 text-sm sm:text-base text-gray-700">
         Are you sure you want to deactivate{" "}
         <span className="font-semibold text-gray-900">{user.fullName}</span>{" "}
         (<span className="text-gray-600">{user.username}</span>)?
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <button
           onClick={onCancel}
-          className="flex-1 bg-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          className="flex-1 bg-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm sm:text-base"
           disabled={loading}
         >
           Cancel
@@ -662,7 +836,7 @@ const ConfirmDelete = ({ user, onCancel, onConfirm, loading }: any) => (
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="flex-1 bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading && (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

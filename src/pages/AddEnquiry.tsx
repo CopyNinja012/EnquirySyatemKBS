@@ -14,11 +14,7 @@ interface FormData {
   alternateMobile: string;
   email: string;
   address: string;
-
-  // Document
   aadharNumber: string;
-
-  // Enquiry and meta
   enquiryDistrict: string;
   sourceOfEnquiry: string;
   interestedStatus: string;
@@ -30,8 +26,6 @@ interface FormData {
   education: string;
   customEducation: string;
   knowledgeOfAndroid: string;
-
-  // Payment fields
   totalFees: string;
   paidFees: string;
   remainingFees: string;
@@ -139,12 +133,12 @@ const Field: React.FC<{
   const isDuplicate = error?.includes("⚠️");
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-xs sm:text-sm font-medium">
         {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>
+          <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>
         )}
         <input
           id={name}
@@ -159,27 +153,31 @@ const Field: React.FC<{
           pattern={pattern}
           readOnly={readOnly}
           disabled={disabled}
-          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
-            } text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${readOnly || disabled ? "bg-gray-50" : ""
-            } ${error
+          className={`w-full h-10 sm:h-11 border rounded-lg px-2 sm:px-3 ${
+            icon ? "pl-8 sm:pl-10" : ""
+          } text-xs sm:text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${
+            readOnly || disabled ? "bg-gray-50" : ""
+          } ${
+            error
               ? isDuplicate
                 ? "border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:border-yellow-500 bg-yellow-50"
                 : "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-            } hover:border-gray-400 focus:outline-none`}
+          } hover:border-gray-400 focus:outline-none`}
         />
         {maxLength && value.length > 0 && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+          <span className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
             {value.length}/{maxLength}
           </span>
         )}
       </div>
       {error && (
         <span
-          className={`text-xs flex items-center gap-1 ${isDuplicate ? "text-yellow-600 font-medium" : "text-red-500"
-            }`}
+          className={`text-xs flex items-center gap-1 ${
+            isDuplicate ? "text-yellow-600 font-medium" : "text-red-500"
+          }`}
         >
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -206,7 +204,7 @@ const TextAreaField: React.FC<{
 }> = ({ label, name, value, onChange, onBlur, required, placeholder, error, rows = 4 }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-xs sm:text-sm font-medium">
         {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <textarea
@@ -217,14 +215,15 @@ const TextAreaField: React.FC<{
         onBlur={onBlur}
         placeholder={placeholder}
         rows={rows}
-        className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 resize-none ${error
-          ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-          : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-          } hover:border-gray-400 focus:outline-none`}
+        className={`w-full border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 resize-none ${
+          error
+            ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
+            : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+        } hover:border-gray-400 focus:outline-none`}
       />
       {error && (
         <span className="text-xs text-red-500 flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -251,28 +250,31 @@ const DropdownField: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="flex flex-col gap-1.5 w-full relative">
-      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-xs sm:text-sm font-medium">
         {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+          <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
             {icon}
           </div>
         )}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center justify-between w-full h-11 px-3 ${icon ? "pl-10" : ""
-            } border rounded-lg text-left text-sm transition-all duration-200 ${error
+          className={`flex items-center justify-between w-full h-10 sm:h-11 px-2 sm:px-3 ${
+            icon ? "pl-8 sm:pl-10" : ""
+          } border rounded-lg text-left text-xs sm:text-sm transition-all duration-200 ${
+            error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-            } hover:border-gray-400 focus:outline-none ${value ? "text-gray-900" : "text-gray-400"}`}
+          } hover:border-gray-400 focus:outline-none ${value ? "text-gray-900" : "text-gray-400"}`}
         >
           <span className="truncate">{value || "Select an option"}</span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""
-              }`}
+            className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${
+              isOpen ? "rotate-180" : ""
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -283,7 +285,7 @@ const DropdownField: React.FC<{
         {isOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-auto">
               {options.map((option, index) => (
                 <button
                   key={index}
@@ -292,8 +294,9 @@ const DropdownField: React.FC<{
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 text-left text-sm hover:bg-green-50 transition-colors ${value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
-                    } ${index !== options.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
+                  className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-green-50 transition-colors ${
+                    value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                  } ${index !== options.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
                 >
                   {option}
                 </button>
@@ -304,7 +307,7 @@ const DropdownField: React.FC<{
       </div>
       {error && (
         <span className="text-xs text-red-500 flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -359,12 +362,12 @@ const SearchableDropdownField: React.FC<{
 
   return (
     <div className="flex flex-col gap-1.5 w-full relative">
-      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-xs sm:text-sm font-medium">
         {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+          <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
             {icon}
           </div>
         )}
@@ -393,11 +396,13 @@ const SearchableDropdownField: React.FC<{
             }
           }}
           autoComplete="off"
-          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
-            } text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${error
+          className={`w-full h-10 sm:h-11 border rounded-lg px-2 sm:px-3 ${
+            icon ? "pl-8 sm:pl-10" : ""
+          } text-xs sm:text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${
+            error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-            } hover:border-gray-400 focus:outline-none`}
+          } hover:border-gray-400 focus:outline-none`}
         />
         {query && (
           <button
@@ -409,7 +414,7 @@ const SearchableDropdownField: React.FC<{
               onChange("");
             }}
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -421,21 +426,22 @@ const SearchableDropdownField: React.FC<{
         {isOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-auto">
               {filtered.length > 0 ? (
                 filtered.map((option, index) => (
                   <button
                     key={option}
                     type="button"
                     onClick={() => selectOption(option)}
-                    className={`w-full px-3 py-2.5 text-left text-sm hover:bg-green-50 transition-colors ${value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
-                      } ${index !== filtered.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
+                    className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-green-50 transition-colors ${
+                      value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                    } ${index !== filtered.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
                   >
                     {option}
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-2.5 text-sm text-gray-500">No results found</div>
+                <div className="px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-gray-500">No results found</div>
               )}
             </div>
           </>
@@ -443,7 +449,7 @@ const SearchableDropdownField: React.FC<{
       </div>
       {error && (
         <span className="text-xs text-red-500 flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -469,12 +475,12 @@ const DateField: React.FC<{
 }> = ({ label, name, value, onChange, required, error, icon, min }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label htmlFor={name} className="flex items-center text-gray-700 text-sm font-medium">
+      <label htmlFor={name} className="flex items-center text-gray-700 text-xs sm:text-sm font-medium">
         {label} {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
+          <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
             {icon}
           </div>
         )}
@@ -485,16 +491,18 @@ const DateField: React.FC<{
           value={value}
           onChange={(e) => onChange(e.target.value)}
           min={min}
-          className={`w-full h-11 border rounded-lg px-3 ${icon ? "pl-10" : ""
-            } text-sm text-gray-900 ${error
+          className={`w-full h-10 sm:h-11 border rounded-lg px-2 sm:px-3 ${
+            icon ? "pl-8 sm:pl-10" : ""
+          } text-xs sm:text-sm text-gray-900 ${
+            error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
               : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
-            } hover:border-gray-400 focus:outline-none transition-all duration-200`}
+          } hover:border-gray-400 focus:outline-none transition-all duration-200`}
         />
       </div>
       {error && (
         <span className="text-xs text-red-500 flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -519,11 +527,12 @@ const Toast: React.FC<{
   }, [onClose]);
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in-right ${type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-        }`}
+      className={`fixed top-4 right-4 left-4 sm:left-auto sm:right-4 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg shadow-lg animate-slide-in-right ${
+        type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+      }`}
     >
       {type === "success" ? (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -531,7 +540,7 @@ const Toast: React.FC<{
           />
         </svg>
       ) : (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -539,9 +548,9 @@ const Toast: React.FC<{
           />
         </svg>
       )}
-      <span className="text-sm font-medium">{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-80">
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <span className="text-xs sm:text-sm font-medium flex-1">{message}</span>
+      <button onClick={onClose} className="ml-1 sm:ml-2 hover:opacity-80 flex-shrink-0">
+        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -559,11 +568,11 @@ const DuplicateWarningModal: React.FC<{
   onClose: () => void;
 }> = ({ existingEnquiry, duplicateField, onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 animate-scale-in">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="p-3 bg-yellow-100 rounded-full">
-            <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black bg-opacity-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 animate-scale-in">
+        <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+          <div className="p-2 sm:p-3 bg-yellow-100 rounded-full flex-shrink-0">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -572,44 +581,44 @@ const DuplicateWarningModal: React.FC<{
               />
             </svg>
           </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-900">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900">
               Duplicate {duplicateField.toUpperCase()} Detected
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               This {duplicateField} already exists in our system
             </p>
           </div>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <h4 className="text-sm font-semibold text-yellow-900 mb-3">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+          <h4 className="text-xs sm:text-sm font-semibold text-yellow-900 mb-2 sm:mb-3">
             Existing Enquiry Details:
           </h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Enquiry ID:</span>
-              <span className="font-medium text-gray-900">{existingEnquiry.id}</span>
+              <span className="font-medium text-gray-900 truncate">{existingEnquiry.id}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Name:</span>
-              <span className="font-medium text-gray-900">{existingEnquiry.fullName}</span>
+              <span className="font-medium text-gray-900 truncate">{existingEnquiry.fullName}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Mobile:</span>
               <span className="font-medium text-gray-900">{existingEnquiry.mobile}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Email:</span>
-              <span className="font-medium text-gray-900 truncate max-w-xs">
+              <span className="font-medium text-gray-900 truncate">
                 {existingEnquiry.email}
               </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Status:</span>
               <span className="font-medium text-gray-900">{existingEnquiry.status}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-2">
               <span className="text-gray-600">Created:</span>
               <span className="font-medium text-gray-900">
                 {new Date(existingEnquiry.createdAt).toLocaleDateString()}
@@ -618,17 +627,17 @@ const DuplicateWarningModal: React.FC<{
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 sm:p-3 mb-3 sm:mb-4">
           <p className="text-xs text-red-700">
             <strong>Important:</strong> Each mobile, email, and Aadhar number must be unique. Please
             verify the information or update the existing enquiry instead of creating a new one.
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
           >
             Close
           </button>
@@ -663,9 +672,9 @@ const AddEnquiry: React.FC = () => {
     education: "",
     customEducation: "",
     knowledgeOfAndroid: "",
-    totalFees: "25000",      // default
+    totalFees: "25000",
     paidFees: "",
-    remainingFees: "25000",  // default
+    remainingFees: "25000",
     paymentMode: "",
     offlinePaymentType: "",
     onlineTransactionId: "",
@@ -697,7 +706,6 @@ const AddEnquiry: React.FC = () => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
     return digits.replace(/(\d{4})(\d{4})(\d{4})/, "$1 $2 $3").trim();
   };
-  // REMOVE LENGTH LIMIT: keep only digits, no slicing
   const formatAmount = (value: string) => value.replace(/\D/g, "");
   const formatCheque = (value: string) => value.replace(/\D/g, "").slice(0, 20);
   const formatTxnId = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 30);
@@ -1110,9 +1118,9 @@ const AddEnquiry: React.FC = () => {
       education: "",
       customEducation: "",
       knowledgeOfAndroid: "",
-      totalFees: "25000",      // keep default on reset
+      totalFees: "25000",
       paidFees: "",
-      remainingFees: "25000",  // keep default on reset
+      remainingFees: "25000",
       paymentMode: "",
       offlinePaymentType: "",
       onlineTransactionId: "",
@@ -1129,7 +1137,7 @@ const AddEnquiry: React.FC = () => {
   // Icons
   // ------------------------------------------------------------------
   const UserIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1139,7 +1147,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const PhoneIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1149,7 +1157,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const EmailIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1159,7 +1167,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const CardIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1169,7 +1177,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const ClipboardIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1179,7 +1187,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const CalendarIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1189,7 +1197,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const StatusIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1199,7 +1207,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const BookIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1209,7 +1217,7 @@ const AddEnquiry: React.FC = () => {
     </svg>
   );
   const BriefcaseIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1220,26 +1228,26 @@ const AddEnquiry: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-t-xl shadow-sm px-6 py-5 border-b border-gray-200">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-white rounded-t-xl shadow-sm px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Add New Enquiry</h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Add New Enquiry</h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Fill in the details to create a new enquiry
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3 text-sm">
-                <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0">
+              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm whitespace-nowrap">
+                <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
                   Total: {stats.total}
                 </div>
-                <div className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg font-medium">
+                <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-50 text-green-700 rounded-lg font-medium">
                   Confirmed: {stats.confirmed}
                 </div>
-                <div className="px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg font-medium">
+                <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-yellow-50 text-yellow-700 rounded-lg font-medium">
                   Pending: {stats.pending}
                 </div>
               </div>
@@ -1253,15 +1261,15 @@ const AddEnquiry: React.FC = () => {
           className="bg-white rounded-b-xl shadow-sm border-x border-b border-gray-200"
           noValidate
         >
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               {/* Left Column */}
-              <div className="space-y-5">
-                <div className="flex items-center gap-2 pb-3 border-b-2 border-green-500">
-                  <div className="p-2 bg-green-100 rounded-lg">
+              <div className="space-y-4 sm:space-y-5">
+                <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b-2 border-green-500">
+                  <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
                     <UserIcon />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Basic Information</h2>
                 </div>
 
                 <Field
@@ -1333,12 +1341,12 @@ const AddEnquiry: React.FC = () => {
                 {/* Document & Payment Details */}
                 {isConfirmed && (
                   <>
-                    <div className="pt-4 border-t-2 border-gray-200">
-                      <div className="flex items-center gap-2 pb-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
+                    <div className="pt-3 sm:pt-4 border-t-2 border-gray-200">
+                      <div className="flex items-center gap-2 pb-2 sm:pb-3">
+                        <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                           <CardIcon />
                         </div>
-                        <h3 className="text-md font-semibold text-gray-900">Document</h3>
+                        <h3 className="text-sm sm:text-md font-semibold text-gray-900">Document</h3>
                       </div>
                     </div>
 
@@ -1359,10 +1367,10 @@ const AddEnquiry: React.FC = () => {
                       <>
                         <div className="pt-2">
                           <div className="flex items-center gap-2 pb-2">
-                            <div className="p-2 bg-green-100 rounded-lg">
+                            <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
                               <ClipboardIcon />
                             </div>
-                            <h3 className="text-md font-semibold text-gray-900">
+                            <h3 className="text-sm sm:text-md font-semibold text-gray-900">
                               Payment Details
                             </h3>
                           </div>
@@ -1396,7 +1404,7 @@ const AddEnquiry: React.FC = () => {
                           label="Remaining Fees Amount"
                           name="remainingFees"
                           value={formData.remainingFees}
-                          onChange={() => { }}
+                          onChange={() => {}}
                           placeholder="Auto-calculated"
                           error={""}
                           icon={<ClipboardIcon />}
@@ -1482,10 +1490,10 @@ const AddEnquiry: React.FC = () => {
                     )}
 
                     {!isAdmin() && (
-                      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex gap-3">
+                      <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex gap-2 sm:gap-3">
                           <svg
-                            className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+                            className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
@@ -1496,7 +1504,7 @@ const AddEnquiry: React.FC = () => {
                             />
                           </svg>
                           <div>
-                            <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                            <h4 className="text-xs sm:text-sm font-semibold text-amber-900 mb-1">
                               Payment Information
                             </h4>
                             <p className="text-xs text-amber-700 leading-relaxed">
@@ -1513,12 +1521,12 @@ const AddEnquiry: React.FC = () => {
               </div>
 
               {/* Right Column */}
-              <div className="space-y-5">
-                <div className="flex items-center gap-2 pb-3 border-b-2 border-blue-500">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="space-y-4 sm:space-y-5">
+                <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b-2 border-blue-500">
+                  <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                     <ClipboardIcon />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">Enquiry Details</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Enquiry Details</h2>
                 </div>
 
                 <SearchableDropdownField
@@ -1611,12 +1619,12 @@ const AddEnquiry: React.FC = () => {
 
                 {isConfirmed && (
                   <>
-                    <div className="pt-4 border-t-2 border-gray-200">
-                      <div className="flex items-center gap-2 pb-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
+                    <div className="pt-3 sm:pt-4 border-t-2 border-gray-200">
+                      <div className="flex items-center gap-2 pb-2 sm:pb-3">
+                        <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
                           <BriefcaseIcon />
                         </div>
-                        <h3 className="text-md font-semibold text-gray-900">
+                        <h3 className="text-sm sm:text-md font-semibold text-gray-900">
                           Additional Information
                         </h3>
                       </div>
@@ -1737,10 +1745,10 @@ const AddEnquiry: React.FC = () => {
             </div>
 
             {/* Info Box */}
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex gap-3">
+            <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex gap-2 sm:gap-3">
                 <svg
-                  className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -1751,7 +1759,7 @@ const AddEnquiry: React.FC = () => {
                   />
                 </svg>
                 <div>
-                  <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                  <h4 className="text-xs sm:text-sm font-semibold text-blue-900 mb-1">
                     Important Note
                   </h4>
                   <p className="text-xs text-blue-700 leading-relaxed">
@@ -1760,8 +1768,8 @@ const AddEnquiry: React.FC = () => {
                         ? "Additional fields are visible since status is Confirmed. Complete Document and Payment Details (including Mode, Cash/Cheque, and Paid Fees Date)."
                         : "Status is Confirmed. Document information is required. Payment details will be managed by administrators."
                       : "Basic information is required. Select Confirmed to access additional document fields" +
-                      (isAdmin() ? " and payment details" : "") +
-                      "."}
+                        (isAdmin() ? " and payment details" : "") +
+                        "."}
                   </p>
                 </div>
               </div>
@@ -1769,51 +1777,49 @@ const AddEnquiry: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="px-6 py-4 bg-gray-50 rounded-b-xl border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 rounded-b-xl border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={handleCancel}
-              className="w-full sm:w-auto order-2 sm:order-1 px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-white border-2 border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
               Cancel
             </button>
 
-            <div className="flex gap-3 w-full sm:w-auto order-1 sm:order-2">
-              <button
-                type="submit"
-                className="flex-1 sm:flex-none px-6 py-2.5 bg-sky-500 text-white font-medium rounded-lg hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Enquiry"
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-sky-500 text-white text-sm font-medium rounded-lg hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 sm:h-5 sm:w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span className="text-xs sm:text-sm">Submitting...</span>
+                </>
+              ) : (
+                <span className="text-xs sm:text-sm">Submit Enquiry</span>
+              )}
+            </button>
           </div>
         </form>
       </div>
@@ -1828,12 +1834,12 @@ const AddEnquiry: React.FC = () => {
       )}
 
       {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 animate-scale-in">
+            <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-red-100 rounded-full flex-shrink-0">
                 <svg
-                  className="w-6 h-6 text-red-600"
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-red-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1847,22 +1853,22 @@ const AddEnquiry: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Discard Changes?</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">Discard Changes?</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   All unsaved changes will be lost
                 </p>
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Keep Editing
               </button>
               <button
                 onClick={resetForm}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
               >
                 Discard
               </button>

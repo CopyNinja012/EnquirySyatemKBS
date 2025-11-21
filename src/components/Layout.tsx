@@ -14,14 +14,15 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  Menu,
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
 /**
  * Layout
  * ------------------------------------------------------------------------
- * Master layout for authenticated pages, adds
- * responsive sidebar + header with permission-aware navigation.
+ * Master layout for authenticated pages: responsive sidebar + header
+ * with permission-aware navigation.
  */
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logout } = useAuth();
@@ -29,8 +30,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // mobile sidebar
+  const [showUserMenu, setShowUserMenu] = useState(false); // desktop header dropdown
 
   const handleLogout = () => {
     logout();
@@ -38,22 +39,26 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const isAdmin = currentUser?.role === "admin";
-const perms: Record<string, boolean> = (() => {
-  const permissions = currentUser?.permissions;
-  if (!permissions) return {};
-  if (Array.isArray(permissions)) {
-    // Convert array to object: ["addEnquiry", "viewEnquiry"] => {addEnquiry: true, viewEnquiry: true}
-    return permissions.reduce((acc, perm) => ({ ...acc, [perm]: true }), {});
-  }
-  return permissions as Record<string, boolean>;
-})();
-  // Define navigation structure with required permissions
+
+  const perms: Record<string, boolean> = (() => {
+    const permissions = currentUser?.permissions;
+    if (!permissions) return {};
+    if (Array.isArray(permissions)) {
+      return permissions.reduce(
+        (acc, perm) => ({ ...acc, [perm]: true }),
+        {} as Record<string, boolean>
+      );
+    }
+    return permissions as Record<string, boolean>;
+  })();
+
+  // Navigation (note: requiredPermission keys must match your permissions data)
   const menuItems = [
     {
       path: "/",
       icon: <Home size={20} />,
       label: "Dashboard",
-      requiredPermission: undefined, // everyone sees dashboard
+      requiredPermission: undefined,
     },
     {
       path: "/add-enquiry",
@@ -117,7 +122,6 @@ const perms: Record<string, boolean> = (() => {
     },
   ];
 
-  // Filter items by admin or permission
   const filteredMenuItems = menuItems.filter((item) => {
     if (item.adminOnly) return isAdmin;
     if (!item.requiredPermission) return true;
@@ -126,17 +130,24 @@ const perms: Record<string, boolean> = (() => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const activeItem =
+    filteredMenuItems.find((item) => isActive(item.path)) ||
+    filteredMenuItems[0];
+
   const getUserInitials = () => {
     if (!currentUser?.fullName) return "U";
     const parts = currentUser.fullName.trim().split(" ");
-    return parts.slice(0, 2).map((s) => s[0].toUpperCase()).join("");
+    return parts
+      .slice(0, 2)
+      .map((s) => s[0].toUpperCase())
+      .join("");
   };
 
   /*─────────────────────────────────────────────*
     RENDER
   *─────────────────────────────────────────────*/
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex min-h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar - Desktop */}
       <aside
         className={`hidden md:flex md:flex-shrink-0 transition-all duration-300 ${
@@ -147,13 +158,17 @@ const perms: Record<string, boolean> = (() => {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 bg-green-900 border-b border-green-700">
             {!isCollapsed && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
                   <Shield size={24} className="text-green-600" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">EnquiryPro</h1>
-                  <p className="text-xs text-green-300">Management System</p>
+                <div className="truncate">
+                  <h1 className="text-lg font-bold text-white truncate">
+                    EnquiryPro
+                  </h1>
+                  <p className="text-[11px] text-green-300 truncate">
+                    Management System
+                  </p>
                 </div>
               </div>
             )}
@@ -172,7 +187,7 @@ const perms: Record<string, boolean> = (() => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
             {filteredMenuItems.map((item) => (
               <Link
                 key={item.path}
@@ -185,11 +200,13 @@ const perms: Record<string, boolean> = (() => {
                 title={isCollapsed ? item.label : ""}
               >
                 <span
-                  className={isActive(item.path) ? "text-green-600" : "text-green-300"}
+                  className={
+                    isActive(item.path) ? "text-green-600" : "text-green-300"
+                  }
                 >
                   {item.icon}
                 </span>
-                {!isCollapsed && <span>{item.label}</span>}
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             ))}
           </nav>
@@ -224,7 +241,9 @@ const perms: Record<string, boolean> = (() => {
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">{getUserInitials()}</span>
+                  <span className="text-sm font-bold text-white">
+                    {getUserInitials()}
+                  </span>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -261,15 +280,15 @@ const perms: Record<string, boolean> = (() => {
                 <Shield size={24} className="text-green-600" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">EnquiryPro</h1>
-                <p className="text-xs text-green-300">Management</p>
+                <h1 className="text-lg font-bold text-white">EnquiryPro</h1>
+                <p className="text-[11px] text-green-300">Management</p>
               </div>
             </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="p-2 text-white hover:bg-green-700 rounded-lg transition-colors"
             >
-              <X size={24} />
+              <X size={22} />
             </button>
           </div>
 
@@ -287,7 +306,9 @@ const perms: Record<string, boolean> = (() => {
                 }`}
               >
                 <span
-                  className={isActive(item.path) ? "text-green-600" : "text-green-300"}
+                  className={
+                    isActive(item.path) ? "text-green-600" : "text-green-300"
+                  }
                 >
                   {item.icon}
                 </span>
@@ -300,7 +321,9 @@ const perms: Record<string, boolean> = (() => {
           <div className="p-4 border-t border-green-700 bg-green-900">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                <span className="text-sm font-bold text-white">{getUserInitials()}</span>
+                <span className="text-sm font-bold text-white">
+                  {getUserInitials()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
@@ -324,12 +347,43 @@ const perms: Record<string, boolean> = (() => {
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
+        {/* Mobile Header */}
+        <header className="flex md:hidden items-center justify-between h-14 px-3 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+              aria-label="Open navigation menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-gray-800 truncate">
+                {activeItem?.label || "Dashboard"}
+              </h2>
+              <p className="text-[11px] text-gray-500 truncate">
+                {currentUser?.fullName}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <Bell size={18} />
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+            </button>
+            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-white">
+                {getUserInitials()}
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* Desktop Header */}
         <header className="hidden md:flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 shadow-sm">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              {filteredMenuItems.find((item) => isActive(item.path))?.label ||
-                "Dashboard"}
+              {activeItem?.label || "Dashboard"}
             </h2>
             <p className="text-xs text-gray-500">
               Welcome back, {currentUser?.fullName}
@@ -384,7 +438,9 @@ const perms: Record<string, boolean> = (() => {
                       </p>
                       <span
                         className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${
-                          isAdmin ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800"
+                          isAdmin
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-green-100 text-green-800"
                         }`}
                       >
                         {isAdmin ? "Administrator" : "User"}
@@ -406,7 +462,10 @@ const perms: Record<string, boolean> = (() => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-gray-50">{children}</main>
+        {/* MAIN CONTENT */}
+        <main className="flex-1 overflow-auto bg-gray-50 px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -22,10 +22,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // 1️⃣ Show a loading spinner until Firebase/user data ready
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8 py-6">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-green-600 mb-3 sm:mb-4"></div>
+          <p className="text-sm sm:text-base text-gray-600">Loading...</p>
         </div>
       </div>
     );

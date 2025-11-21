@@ -24,10 +24,10 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   // 1️⃣ Loading spinner
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-height-screen bg-gray-50 px-4 sm:px-6 lg:px-8 py-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-sky-600 mx-auto mb-3 sm:mb-4" />
+          <p className="text-sm sm:text-base text-gray-600">Loading...</p>
         </div>
       </div>
     );

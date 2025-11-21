@@ -272,34 +272,34 @@ const SearchAdvertisementEnquiry: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
-              <Search className="w-8 h-8 text-white" />
+              <Search className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </div>
-            Search Advertisement Enquiries
+            <span>Search Advertisement Enquiries</span>
           </h1>
-          <p className="text-gray-600 mt-2 ml-1">
+          <p className="text-gray-600 mt-2 ml-0.5 text-sm sm:text-base">
             Search by name, phone, email, ID, Aadhar, or PAN number
           </p>
         </div>
 
         {/* Search Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-blue-100 rounded-lg">
+        <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-7 lg:p-8 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
+            <div className="p-2 bg-blue-100 rounded-lg w-fit">
               <Search size={20} className="text-blue-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               Search Parameters
             </h2>
           </div>
 
-          {/* Search Input */}
-          <div className="space-y-4">
+          {/* Search Input + Filters */}
+          <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search Term
@@ -314,14 +314,14 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter name, phone, email, ID, Aadhar, or PAN..."
-                  className="w-full h-14 border-2 border-gray-300 rounded-xl pl-12 pr-12 text-base focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all duration-200 hover:border-gray-400"
+                  className="w-full h-12 sm:h-14 border-2 border-gray-300 rounded-xl pl-11 sm:pl-12 pr-11 sm:pr-12 text-sm sm:text-base focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all duration-200 hover:border-gray-400"
                 />
                 {searchTerm && (
                   <button
                     onClick={clearSearch}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    <X size={22} />
+                    <X size={20} className="sm:w-[22px] sm:h-[22px]" />
                   </button>
                 )}
               </div>
@@ -332,10 +332,10 @@ const SearchAdvertisementEnquiry: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Document Filter
               </label>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <button
                   onClick={() => setFilterType("all")}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm sm:text-[0.95rem] font-medium transition-all duration-200 ${
                     filterType === "all"
                       ? "bg-blue-600 text-white shadow-lg"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -346,7 +346,7 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilterType("with-docs")}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm sm:text-[0.95rem] font-medium transition-all duration-200 ${
                     filterType === "with-docs"
                       ? "bg-blue-600 text-white shadow-lg"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -357,7 +357,7 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setFilterType("without-docs")}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm sm:text-[0.95rem] font-medium transition-all duration-200 ${
                     filterType === "without-docs"
                       ? "bg-blue-600 text-white shadow-lg"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -373,16 +373,16 @@ const SearchAdvertisementEnquiry: React.FC = () => {
             <button
               onClick={handleSearch}
               disabled={isSearching || !searchTerm.trim()}
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {isSearching ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white" />
                   Searching...
                 </>
               ) : (
                 <>
-                  <Search size={20} />
+                  <Search size={18} className="sm:w-5 sm:h-5" />
                   Search Enquiries
                 </>
               )}
@@ -393,17 +393,20 @@ const SearchAdvertisementEnquiry: React.FC = () => {
         {/* Results Section */}
         {hasSearched && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">Search Results</h3>
-                <p className="text-blue-100 text-sm mt-1">
-                  Found {searchResults.length} result(s)
+                <h3 className="text-lg sm:text-xl font-bold text-white">
+                  Search Results
+                </h3>
+                <p className="text-blue-100 text-xs sm:text-sm mt-1">
+                  Found {searchResults.length} result
+                  {searchResults.length === 1 ? "" : "s"}
                 </p>
               </div>
               {searchResults.length > 0 && (
                 <button
                   onClick={handleExportResults}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all duration-200 font-medium"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-sm sm:text-[0.95rem] text-white rounded-lg hover:bg-white/30 transition-all duration-200 font-medium w-full sm:w-auto"
                 >
                   <Download size={18} />
                   Export
@@ -412,19 +415,19 @@ const SearchAdvertisementEnquiry: React.FC = () => {
             </div>
 
             {searchResults.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-                  <AlertTriangle size={40} className="text-gray-400" />
+              <div className="text-center py-12 sm:py-16 px-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full mb-4">
+                  <AlertTriangle size={32} className="sm:w-10 sm:h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                   No Results Found
                 </h3>
-                <p className="text-gray-500 mb-6">
+                <p className="text-gray-500 mb-5 sm:mb-6 text-sm sm:text-base">
                   No advertisement enquiries match your search criteria
                 </p>
                 <button
                   onClick={clearSearch}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
                 >
                   Clear Search
                 </button>
@@ -483,9 +486,9 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 max-w-xs">
                               <Mail size={16} className="text-gray-400" />
-                              <span className="text-sm text-gray-700 truncate max-w-xs">
+                              <span className="text-sm text-gray-700 truncate">
                                 {enquiry.email}
                               </span>
                             </div>
@@ -510,19 +513,17 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <Calendar size={16} className="text-gray-400" />
-                                <span className="text-sm font-medium text-gray-700">
-                                  {new Date(
-                                    enquiry.importedAt
-                                  ).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                              </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <Calendar size={16} className="text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {new Date(
+                                  enquiry.importedAt
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
                             </div>
                           </td>
                         </tr>
@@ -534,34 +535,36 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                 {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-200">
                   {searchResults.map((enquiry) => (
-                    <div
+                    <button
                       key={enquiry.id}
                       onClick={() => handleRowClick(enquiry)}
-                      className="p-5 hover:bg-blue-50 cursor-pointer transition-all duration-200 active:bg-blue-100"
+                      className="w-full text-left p-4 sm:p-5 hover:bg-blue-50 cursor-pointer transition-all duration-200 active:bg-blue-100"
                     >
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg flex-shrink-0">
                           {enquiry.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-base mb-1">
+                          <p className="font-bold text-gray-900 text-sm sm:text-base mb-1">
                             {enquiry.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-[11px] sm:text-xs text-gray-500">
                             ID: {enquiry.id.split("-")[0]}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-2.5 mt-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <div className="space-y-2.5 mt-3">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                           <Phone
                             size={16}
                             className="text-gray-400 flex-shrink-0"
                           />
-                          <span className="font-medium">{enquiry.phoneNo}</span>
+                          <span className="font-medium">
+                            {enquiry.phoneNo}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                           <Mail
                             size={16}
                             className="text-gray-400 flex-shrink-0"
@@ -570,24 +573,24 @@ const SearchAdvertisementEnquiry: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
+                      <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200">
                         {enquiry.aadharNo && (
-                          <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold">
+                          <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[11px] sm:text-xs font-semibold">
                             Aadhar ✓
                           </span>
                         )}
                         {enquiry.panNo && (
-                          <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
+                          <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-[11px] sm:text-xs font-semibold">
                             PAN ✓
                           </span>
                         )}
                         {!enquiry.aadharNo && !enquiry.panNo && (
-                          <span className="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-xs">
+                          <span className="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[11px] sm:text-xs">
                             No Documents
                           </span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </>
@@ -670,31 +673,31 @@ const DetailsModal: React.FC<{
   onDelete,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full animate-scale-in max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-5 flex justify-between items-center flex-shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <FileSpreadsheet size={28} />
-              {isEditing ? "Edit Enquiry" : "Enquiry Details"}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] sm:max-h-[90vh] animate-scale-in flex flex-col overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 sm:px-6 py-3 sm:py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap">
+              <FileSpreadsheet size={24} className="sm:w-[28px] sm:h-[28px]" />
+              <span>{isEditing ? "Edit Enquiry" : "Enquiry Details"}</span>
             </h2>
-            <p className="text-sm text-blue-100 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-blue-100 mt-1 font-medium truncate">
               ID: {enquiry.id}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200 hover:rotate-90"
+            className="self-end sm:self-auto p-2 hover:bg-white/20 rounded-xl transition-all duration-200 hover:rotate-90"
           >
-            <X size={28} />
+            <X size={24} className="sm:w-[28px] sm:h-[28px]" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6 overflow-y-auto flex-1">
           {/* Personal Info */}
-          <div className="space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
-            <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-lg">
-              <UserIcon size={22} className="text-blue-600" />
+          <div className="space-y-4 bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-base sm:text-lg">
+              <UserIcon size={20} className="sm:w-[22px] sm:h-[22px] text-blue-600" />
               Personal Information
             </h3>
 
@@ -733,9 +736,9 @@ const DetailsModal: React.FC<{
           </div>
 
           {/* Documents */}
-          <div className="space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
-            <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-lg">
-              <CreditCard size={22} className="text-blue-600" />
+          <div className="space-y-4 bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-base sm:text-lg">
+              <CreditCard size={20} className="sm:w-[22px] sm:h-[22px] text-blue-600" />
               Document Information
             </h3>
 
@@ -765,9 +768,9 @@ const DetailsModal: React.FC<{
 
           {/* Import Info */}
           {!isEditing && (
-            <div className="space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-lg">
-                <Calendar size={22} className="text-blue-600" />
+            <div className="space-y-4 bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b border-gray-300 pb-3 text-base sm:text-lg">
+                <Calendar size={20} className="sm:w-[22px] sm:h-[22px] text-blue-600" />
                 Import Information
               </h3>
 
@@ -792,31 +795,31 @@ const DetailsModal: React.FC<{
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex flex-col sm:flex-row justify-between gap-3 border-t border-gray-200 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 rounded-b-2xl flex flex-col sm:flex-row justify-between gap-3 border-t border-gray-200 flex-shrink-0">
           {canDelete && !isEditing ? (
             <button
               onClick={onDelete}
-              className="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <Trash2 size={18} />
               Delete Enquiry
             </button>
           ) : (
-            <div className="flex-1"></div>
+            <div className="flex-1" />
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             {isEditing ? (
               <>
                 <button
                   onClick={onCancel}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-semibold transition-all duration-200"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-semibold transition-all duration-200 text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onSave}
-                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Save size={18} />
                   Save Changes
@@ -826,13 +829,13 @@ const DetailsModal: React.FC<{
               <>
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-semibold transition-all duration-200"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-semibold transition-all duration-200 text-sm sm:text-base"
                 >
                   Close
                 </button>
                 <button
                   onClick={onEdit}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Edit size={18} />
                   Edit
@@ -875,7 +878,7 @@ const EditableField: React.FC<{
   <div className={`flex items-start gap-3 ${className}`}>
     <div className="text-gray-400 mt-1 flex-shrink-0">{icon}</div>
     <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">
+      <p className="text-[11px] sm:text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">
         {label} {required && <span className="text-red-500">*</span>}
       </p>
       {isEditing ? (
@@ -892,7 +895,11 @@ const EditableField: React.FC<{
                 : "border-gray-300 focus:border-blue-500"
             }`}
           />
-          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+          {error && (
+            <p className="text-[11px] sm:text-xs text-red-500 mt-1">
+              {error}
+            </p>
+          )}
         </div>
       ) : (
         <p className="text-sm font-semibold text-gray-900 break-words">
@@ -916,10 +923,12 @@ const InfoField: React.FC<{
   <div className="flex items-start gap-3">
     <div className="text-gray-400 mt-1 flex-shrink-0">{icon}</div>
     <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">
+      <p className="text-[11px] sm:text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">
         {label}
       </p>
-      <p className="text-sm font-semibold text-gray-900 break-words">{value}</p>
+      <p className="text-sm font-semibold text-gray-900 break-words">
+        {value}
+      </p>
     </div>
   </div>
 );
@@ -929,32 +938,34 @@ const DeleteConfirmModal: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({ onConfirm, onCancel }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
-    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black bg-opacity-50 animate-fade-in">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 animate-scale-in">
       <div className="flex items-center gap-4 mb-4">
         <div className="p-3 bg-red-100 rounded-full">
-          <Trash2 size={28} className="text-red-600" />
+          <Trash2 size={26} className="sm:w-[28px] sm:h-[28px] text-red-600" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Delete Enquiry</h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+            Delete Enquiry
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             This action cannot be undone
           </p>
         </div>
       </div>
-      <p className="text-gray-700 mb-6">
+      <p className="text-sm sm:text-base text-gray-700 mb-5 sm:mb-6">
         Are you sure you want to delete this advertisement enquiry?
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <button
           onClick={onCancel}
-          className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+          className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-700 text-sm sm:text-base font-semibold rounded-xl hover:bg-gray-200 transition-colors"
         >
           Cancel
         </button>
         <button
           onClick={onConfirm}
-          className="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-lg"
+          className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-lg"
         >
           Delete
         </button>
@@ -976,14 +987,14 @@ const Toast: React.FC<{
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl animate-slide-in ${
+      className={`fixed top-3 sm:top-4 right-2 left-2 sm:left-auto sm:right-4 z-50 flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl animate-slide-in max-w-xs sm:max-w-sm mx-auto sm:mx-0 ${
         type === "success"
           ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
           : "bg-gradient-to-r from-red-600 to-pink-600 text-white"
       }`}
     >
       {type === "success" ? (
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -991,7 +1002,7 @@ const Toast: React.FC<{
           />
         </svg>
       ) : (
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -999,12 +1010,12 @@ const Toast: React.FC<{
           />
         </svg>
       )}
-      <span className="text-sm font-bold">{message}</span>
+      <span className="text-xs sm:text-sm font-bold flex-1">{message}</span>
       <button
         onClick={onClose}
-        className="ml-2 hover:opacity-80 transition-opacity"
+        className="ml-1 hover:opacity-80 transition-opacity"
       >
-        <X size={18} />
+        <X size={16} className="sm:w-[18px] sm:h-[18px]" />
       </button>
     </div>
   );

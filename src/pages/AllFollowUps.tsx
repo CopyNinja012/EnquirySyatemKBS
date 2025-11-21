@@ -113,15 +113,17 @@ const FollowUps: React.FC = () => {
     setModal(true);
   };
 
+  // ✅ use functional update so multiple field changes are always applied correctly
   const change = (field: keyof EnquiryData, value: string) =>
-    form && setForm({ ...form, [field]: value });
+    setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
 
   const validate = () => {
     if (!form) return false;
     const e: Record<string, string> = {};
     if (Validation.fullName(form.fullName))
       e.fullName = Validation.fullName(form.fullName);
-    if (Validation.mobile(form.mobile)) e.mobile = Validation.mobile(form.mobile);
+    if (Validation.mobile(form.mobile))
+      e.mobile = Validation.mobile(form.mobile);
     if (Validation.email(form.email)) e.email = Validation.email(form.email);
     if (Validation.address(form.address))
       e.address = Validation.address(form.address);
@@ -162,33 +164,35 @@ const FollowUps: React.FC = () => {
 
   /* ─────────────── UI ─────────────── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
+        <header className="flex flex-col sm:flex-row sm:justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">All Follow-Ups</h1>
-            <div className="flex gap-2 mt-1 text-sm text-gray-600 flex-wrap">
-              <span className="bg-green-100 px-3 py-1 rounded-lg flex items-center gap-1">
-                <Calendar size={14} className="text-green-600" />
-                {date}
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+              All Follow-Ups
+            </h1>
+            <div className="flex gap-2 mt-2 text-xs sm:text-sm text-gray-600 flex-wrap">
+              <span className="bg-green-100 px-2 sm:px-3 py-1 rounded-lg flex items-center gap-1">
+                <Calendar size={14} className="text-green-600 flex-shrink-0" />
+                <span className="truncate">{date}</span>
               </span>
-              <span className="bg-blue-100 px-3 py-1 rounded-lg flex items-center gap-1">
-                <Clock size={14} className="text-blue-600" />
+              <span className="bg-blue-100 px-2 sm:px-3 py-1 rounded-lg flex items-center gap-1">
+                <Clock size={14} className="text-sky-600 flex-shrink-0" />
                 {time}
               </span>
             </div>
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="bg-white border border-gray-300 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-100"
+            className="bg-white border border-gray-300 rounded-lg px-3 sm:px-4 py-2 flex items-center justify-center gap-2 hover:bg-gray-100 text-sm font-medium transition-colors"
           >
-            <RefreshCw size={16} /> Refresh
+            <RefreshCw size={16} /> <span>Refresh</span>
           </button>
         </header>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Stat title="Total" value={list.length} color="blue" />
           <Stat title="Today" value={todayCount} color="orange" />
           <Stat
@@ -204,31 +208,31 @@ const FollowUps: React.FC = () => {
         </div>
 
         {/* Search */}
-        <div className="bg-white p-3 rounded-lg shadow-sm mb-6 relative">
+        <div className="bg-white p-3 rounded-lg shadow-sm mb-4 sm:mb-6 relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
           />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by Name, Mobile, Email or ID..."
-            className="w-full border rounded-lg pl-9 pr-8 h-10 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+            className="w-full border rounded-lg pl-9 sm:pl-10 pr-8 sm:pr-10 h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-green-500 outline-none"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X size={16} />
             </button>
           )}
         </div>
 
-        {/* Table list */}
+        {/* Table/List */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm divide-y divide-gray-100">
           {filtered.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 py-10">
+            <p className="text-center text-xs sm:text-sm text-gray-500 py-8 sm:py-10">
               No follow-ups found
             </p>
           ) : (
@@ -236,25 +240,27 @@ const FollowUps: React.FC = () => {
               <div
                 key={f.id}
                 onClick={() => openRow(f)}
-                className="flex justify-between items-center px-4 py-3 hover:bg-green-50 cursor-pointer"
+                className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:px-4 py-3 hover:bg-green-50 cursor-pointer gap-2 sm:gap-0 transition-colors"
               >
-                <div>
-                  <p className="font-semibold text-gray-800">{f.fullName}</p>
-                  <p className="text-sm text-gray-500">{f.mobile}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm sm:text-base text-gray-800 truncate">
+                    {f.fullName}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500">{f.mobile}</p>
                 </div>
-                <div className="text-right">
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
                   <span
-                    className={`px-3 py-1 text-xs rounded-full ${
+                    className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded-full whitespace-nowrap ${
                       f.status === "Confirmed"
                         ? "bg-green-100 text-green-700"
                         : f.status === "Pending"
                         ? "bg-yellow-100 text-yellow-700"
-                        : "bg-blue-100 text-blue-700"
+                        : "bg-blue-100 text-sky-700"
                     }`}
                   >
                     {f.status}
                   </span>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[10px] sm:text-xs text-gray-500">
                     {formatDate(f.callBackDate)}
                   </p>
                 </div>
@@ -315,9 +321,11 @@ const Stat = ({
   const cls = colorClasses[color];
 
   return (
-    <div className={`bg-white p-4 border-l-4 ${cls.border} rounded-lg`}>
-      <p className="text-xs text-gray-500">{title}</p>
-      <p className="text-2xl font-bold text-gray-800">{value}</p>
+    <div
+      className={`bg-white p-3 sm:p-4 border-l-4 ${cls.border} rounded-lg shadow-sm`}
+    >
+      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">{title}</p>
+      <p className="text-xl sm:text-2xl font-bold text-gray-800">{value}</p>
     </div>
   );
 };
@@ -334,22 +342,28 @@ const DetailModal: React.FC<any> = ({
   onDelete,
   canDelete,
 }) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50">
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
       {/* Sticky header */}
-      <div className="bg-green-600 text-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <h2 className="text-lg font-semibold">
+      <div className="bg-sky-600 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-10">
+        <h2 className="text-base sm:text-lg font-semibold truncate pr-2">
           {editing ? "Edit Enquiry" : "Enquiry Details"}
         </h2>
-        <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg">
-          <X />
+        <button
+          onClick={onClose}
+          className="hover:bg-white/20 p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0"
+        >
+          <X size={20} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
       {/* Scrollable main content */}
-      <div className="p-6 space-y-6 overflow-y-auto flex-1">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
         {/* Information Sections */}
-        <Section title="Personal Information" icon={<User size={18} />}>
+        <Section
+          title="Personal Information"
+          icon={<User size={16} className="sm:w-[18px] sm:h-[18px]" />}
+        >
           <Editable
             label="Full Name"
             value={form.fullName}
@@ -392,7 +406,10 @@ const DetailModal: React.FC<any> = ({
           />
         </Section>
 
-        <Section title="Document Information" icon={<CreditCard size={18} />}>
+        <Section
+          title="Document Information"
+          icon={<CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />}
+        >
           <Editable
             label="Aadhar Number"
             value={form.aadharNumber || ""}
@@ -402,7 +419,10 @@ const DetailModal: React.FC<any> = ({
           />
         </Section>
 
-        <Section title="Educational Information" icon={<BookOpen size={18} />}>
+        <Section
+          title="Educational Information"
+          icon={<BookOpen size={16} className="sm:w-[18px] sm:h-[18px]" />}
+        >
           <EditableSelect
             label="Education"
             value={form.education || ""}
@@ -440,7 +460,10 @@ const DetailModal: React.FC<any> = ({
           />
         </Section>
 
-        <Section title="Follow-Up Details" icon={<Calendar size={18} />}>
+        <Section
+          title="Follow-Up Details"
+          icon={<Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />}
+        >
           <EditableSelect
             label="Interested Status"
             value={form.interestedStatus || ""}
@@ -510,12 +533,15 @@ const DetailModal: React.FC<any> = ({
           )}
         </Section>
 
-        <Section title="Additional Information" icon={<Info size={18} />}>
-          <p className="text-sm text-gray-700">
+        <Section
+          title="Additional Information"
+          icon={<Info size={16} className="sm:w-[18px] sm:h-[18px]" />}
+        >
+          <p className="text-xs sm:text-sm text-gray-700">
             <strong>Created:</strong> {formatDate(form.createdAt)}
           </p>
           {form.updatedAt && form.updatedAt !== form.createdAt && (
-            <p className="text-sm text-gray-700">
+            <p className="text-xs sm:text-sm text-gray-700">
               <strong>Updated:</strong> {formatDate(form.updatedAt)}
             </p>
           )}
@@ -523,48 +549,51 @@ const DetailModal: React.FC<any> = ({
       </div>
 
       {/* Sticky footer */}
-      <div className="flex justify-end gap-3 bg-gray-50 border-t px-6 py-4 sticky bottom-0">
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-2 sm:gap-3 bg-gray-50 border-t px-4 sm:px-6 py-3 sm:py-4 sticky bottom-0">
         {canDelete && (
           <button
             onClick={onDelete}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-700"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 text-sm font-medium transition-colors"
           >
-            <Trash2 size={16} /> Delete
+            <Trash2 size={16} /> <span>Delete</span>
           </button>
         )}
-        {editing ? (
-          <>
+        <div className="flex gap-2 sm:gap-3 sm:ml-auto">
+          {editing ? (
+            <>
+              <button
+                onClick={() => setEditing(false)}
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onSave}
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-sky-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 text-sm font-medium transition-colors"
+              >
+                <Save size={16} /> <span>Save</span>
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => setEditing(false)}
-              className="px-4 py-2 bg-gray-200 rounded-lg"
+              onClick={() => setEditing(true)}
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-sky-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 text-sm font-medium transition-colors"
             >
-              Cancel
+              <Pencil size={16} /> <span>Edit</span>
             </button>
-            <button
-              onClick={onSave}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700"
-            >
-              <Save size={16} /> Save
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700"
-          >
-            <Pencil size={16} /> Edit
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   </div>
 );
 
-/* Simple helpers */
+/* Label column: now uses BLUE instead of green for the icon */
 const Section: React.FC<any> = ({ title, icon, children }) => (
-  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 border-b pb-2">
-      <span className="text-green-600">{icon}</span> {title}
+  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-3">
+    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 flex items-center gap-2 border-b pb-2">
+      <span className="text-sky-600 flex-shrink-0">{icon}</span>
+      <span className="truncate">{title}</span>
     </h3>
     {children}
   </div>
@@ -581,9 +610,9 @@ const Editable = ({
   icon,
 }: any) => (
   <div>
-    <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
-      {icon}
-      {label}
+    <label className="text-[10px] sm:text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </label>
     {editing ? (
       textarea ? (
@@ -591,7 +620,7 @@ const Editable = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 ${
+          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
             error ? "border-red-400" : "border-gray-300"
           }`}
         />
@@ -600,14 +629,14 @@ const Editable = ({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 ${
+          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
             error ? "border-red-400" : "border-gray-300"
           }`}
         />
       )
     ) : (
-      <p className="text-sm text-gray-800">
-        {value || <span className="italic text-gray-400">Not set</span>}
+      <p className="text-xs sm:text-sm text-gray-800 break-words">
+        {value || <span className="italic text-gray-400">Not set</span>}
       </p>
     )}
     {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -623,14 +652,14 @@ const EditableSelect = ({
   error,
 }: any) => (
   <div>
-    <label className="text-xs text-gray-500 mb-1 font-medium block">
+    <label className="text-[10px] sm:text-xs text-gray-500 mb-1 font-medium block truncate">
       {label}
     </label>
     {editing ? (
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 ${
+        className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
           error ? "border-red-400" : "border-gray-300"
         }`}
       >
@@ -642,8 +671,8 @@ const EditableSelect = ({
         ))}
       </select>
     ) : (
-      <p className="text-sm text-gray-800">
-        {value || <span className="italic text-gray-400">Not selected</span>}
+      <p className="text-xs sm:text-sm text-gray-800">
+        {value || <span className="italic text-gray-400">Not selected</span>}
       </p>
     )}
     {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -651,21 +680,24 @@ const EditableSelect = ({
 );
 
 const ConfirmDelete = ({ onConfirm, onCancel }: any) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
-      <AlertCircle className="text-red-600 mb-3" />
-      <h3 className="text-lg font-semibold mb-1">Confirm Deletion</h3>
-      <p className="text-sm text-gray-600 mb-6">
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50">
+    <div className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-sm">
+      <AlertCircle className="text-red-600 mb-3 w-6 h-6 sm:w-7 sm:h-7" />
+      <h3 className="text-base sm:text-lg font-semibold mb-1">Confirm Deletion</h3>
+      <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
         Are you sure you want to delete this enquiry? This action cannot be
         undone.
       </p>
-      <div className="flex gap-3">
-        <button onClick={onCancel} className="flex-1 bg-gray-100 py-2 rounded-lg">
+      <div className="flex gap-2 sm:gap-3">
+        <button
+          onClick={onCancel}
+          className="flex-1 bg-gray-100 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+        >
           Cancel
         </button>
         <button
           onClick={onConfirm}
-          className="flex-1 bg-red-600 text-white py-2 rounded-lg"
+          className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
         >
           Delete
         </button>
@@ -681,13 +713,17 @@ const Toast = ({ message, ok, onClose }: any) => {
   }, [onClose]);
   return (
     <div
-      className={`fixed top-4 right-4 px-4 py-3 rounded-lg text-white flex items-center gap-2 shadow-lg ${
+      className={`fixed top-4 right-4 left-4 sm:left-auto sm:right-4 sm:w-auto px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-white flex items-center gap-2 shadow-lg z-50 ${
         ok ? "bg-green-600" : "bg-red-600"
       }`}
     >
-      {ok ? <CheckCircle /> : <AlertCircle />}
-      <span>{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-80">
+      {ok ? (
+        <CheckCircle size={18} className="flex-shrink-0" />
+      ) : (
+        <AlertCircle size={18} className="flex-shrink-0" />
+      )}
+      <span className="text-xs sm:text-sm flex-1">{message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-80 flex-shrink-0">
         <X size={16} />
       </button>
     </div>

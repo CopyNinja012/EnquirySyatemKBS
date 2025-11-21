@@ -23,20 +23,25 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { SidebarProvider, useSidebar } from "./contexts/SidebarContext";
 
 /* ─────────────────────────────────────────────
-   Layout wrapper: Sidebar always visible
+   Layout wrapper: Sidebar + responsive content
 ─────────────────────────────────────────────── */
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useSidebar();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar is responsible for its own responsive behavior */}
       <Sidebar />
-      <div
-        className={`flex-1 transition-all duration-300 ${
-          isCollapsed ? "md:ml-20" : "md:ml-64"
-        }`}
-      >
-        {children}
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+        <main
+          className={`flex-1 transition-[margin] duration-300 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 ${
+            isCollapsed ? "md:ml-20" : "md:ml-64"
+          }`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -90,7 +95,6 @@ function App() {
               }
             />
 
-            {/* ✅ PAYMENT DETAILS ROUTE */}
             <Route
               path="/payment-details"
               element={
@@ -191,7 +195,6 @@ function App() {
               }
             />
 
-            {/* ✅ TEST PASSWORD CHANGE - Fixed to use AppLayout */}
             <Route
               path="/test-password-change"
               element={

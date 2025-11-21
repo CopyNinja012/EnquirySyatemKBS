@@ -5,10 +5,7 @@ import {
   FileSpreadsheet,
   CheckCircle,
   XCircle,
-  //   Download,
   AlertCircle,
-  //   Info,
-  //   FileDown,
 } from "lucide-react";
 import { advertisementStorage } from "../utils/advertisementStorage";
 import { useAuth } from "../contexts/AuthContext";
@@ -68,7 +65,6 @@ const ImportAdvertisement: React.FC = () => {
         return;
       }
 
-      // Map Excel data to our format with proper type conversion
       const enquiries = jsonData.map((row: any) => ({
         name: String(row.Name || row.name || "").trim(),
         phoneNo: String(
@@ -94,7 +90,6 @@ const ImportAdvertisement: React.FC = () => {
             : "",
       }));
 
-      // Bulk import
       const result = advertisementStorage.addBulkAdvertisementEnquiries(
         enquiries,
         currentUser?.username
@@ -119,30 +114,6 @@ const ImportAdvertisement: React.FC = () => {
       setImporting(false);
     }
   };
-  //   const downloadTemplate = () => {
-  //   const template = [
-  //      {
-  //        Name: "John Doe",
-  //        "Phone No": "9876543210",
-  //        Email: "john@example.com",
-  //        "Aadhar No": "123456789012",
-  //        "PAN No": "ABCDE1234F",
-  //      },
-  //    {
-  //        Name: "Jane Smith",
-  //       "Phone No": "9876543211",
-  //      Email: "jane@example.com",
-  //       "Aadhar No": "",
-  //       "PAN No": "",
-  //     },
-  //     ];
-
-  //     const ws = XLSX.utils.json_to_sheet(template);
-  //     const wb = XLSX.utils.book_new();
-  //     XLSX.utils.book_append_sheet(wb, ws, "Advertisement Enquiries");
-  //     XLSX.writeFile(wb, "advertisement-template.xlsx");
-  //     showToast("Template downloaded successfully", "success");
-  //   };
 
   const clearFile = () => {
     setFile(null);
@@ -152,68 +123,22 @@ const ImportAdvertisement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Upload className="w-8 h-8 text-sky-600" />
-            Import Advertisement Enquiries
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+            <Upload className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-sky-600 flex-shrink-0" />
+            <span className="truncate">Import Advertisement Enquiries</span>
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 sm:mt-2">
             Upload Excel file to import advertisement enquiry data in bulk
           </p>
         </div>
-        {/* Info Card
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                Excel File Requirements
-              </h3>
-              <ul className="space-y-2 text-sm text-blue-800">
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  <span>
-                    <strong>Mandatory Columns:</strong> Name, Phone No, Email
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  <span>
-                    <strong>Optional Columns:</strong> Aadhar No, PAN No
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  <span>Phone number must be 10 digits starting with 6-9</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  <span>Valid email format required</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  <span>Aadhar: 12 digits, PAN: Format ABCDE1234F</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div> */}
-        {/* Download Template Button
-        <div className="mb-6">
-          <button
-            onClick={downloadTemplate}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <FileDown size={20} />
-            Download Excel Template
-          </button>
-        </div> */}
+
         {/* Upload Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-sky-500 transition-all duration-300">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 sm:p-8 md:p-12 text-center hover:border-sky-500 transition-all duration-300">
             <input
               id="file-input"
               type="file"
@@ -225,110 +150,113 @@ const ImportAdvertisement: React.FC = () => {
               htmlFor="file-input"
               className="cursor-pointer flex flex-col items-center"
             >
-              <div className="w-20 h-20 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
-                <FileSpreadsheet className="w-10 h-10 text-sky-600" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                <FileSpreadsheet className="w-8 h-8 sm:w-10 sm:h-10 text-sky-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-1 sm:mb-2 truncate max-w-full px-2">
                 {file ? file.name : "Choose Excel File"}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-4 px-2">
                 Click to browse or drag and drop your file here
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-500">
                 Supported formats: .xlsx, .xls
               </p>
             </label>
           </div>
 
           {file && (
-            <div className="mt-6 flex items-center justify-between p-4 bg-sky-50 rounded-xl border border-sky-200">
-              <div className="flex items-center gap-3">
-                <FileSpreadsheet className="w-6 h-6 text-sky-600" />
-                <div>
-                  <p className="font-semibold text-gray-900">{file.name}</p>
-                  <p className="text-sm text-gray-600">
+            <div className="mt-4 sm:mt-6 flex items-center justify-between p-3 sm:p-4 bg-sky-50 rounded-xl border border-sky-200 gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-sky-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs sm:text-sm text-gray-900 truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-gray-600">
                     {(file.size / 1024).toFixed(2)} KB
                   </p>
                 </div>
               </div>
               <button
                 onClick={clearFile}
-                className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 hover:bg-red-100 rounded-lg transition-colors flex-shrink-0"
               >
-                <XCircle className="w-5 h-5 text-red-600" />
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               </button>
             </div>
           )}
 
-          <div className="mt-6 flex gap-4">
+          <div className="mt-4 sm:mt-6">
             <button
               onClick={handleImport}
               disabled={!file || importing}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 to-blue-600 text-white rounded-xl hover:from-sky-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-105"
+              className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-sky-600 to-blue-600 text-white rounded-xl hover:from-sky-700 hover:to-blue-700 transition-all duration-300 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-105"
             >
               {importing ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Importing...
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                  <span>Importing...</span>
                 </>
               ) : (
                 <>
-                  <Upload size={20} />
-                  Import Data
+                  <Upload size={18} className="sm:w-5 sm:h-5" />
+                  <span>Import Data</span>
                 </>
               )}
             </button>
           </div>
         </div>
+
         {/* Import Results */}
         {importResult && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <AlertCircle className="w-6 h-6 text-blue-600" />
-              Import Results
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+              <span>Import Results</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="p-6 bg-sky-50 rounded-xl border-l-4 border-sky-500">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="p-4 sm:p-6 bg-sky-50 rounded-xl border-l-4 border-sky-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-sky-600 font-medium">
+                    <p className="text-xs sm:text-sm text-sky-600 font-medium">
                       Successfully Imported
                     </p>
-                    <p className="text-3xl font-bold text-sky-700 mt-1">
+                    <p className="text-2xl sm:text-3xl font-bold text-sky-700 mt-1">
                       {importResult.success}
                     </p>
                   </div>
-                  <CheckCircle className="w-12 h-12 text-sky-500" />
+                  <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-sky-500 flex-shrink-0" />
                 </div>
               </div>
 
-              <div className="p-6 bg-red-50 rounded-xl border-l-4 border-red-500">
+              <div className="p-4 sm:p-6 bg-red-50 rounded-xl border-l-4 border-red-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-red-600 font-medium">
+                    <p className="text-xs sm:text-sm text-red-600 font-medium">
                       Failed to Import
                     </p>
-                    <p className="text-3xl font-bold text-red-700 mt-1">
+                    <p className="text-2xl sm:text-3xl font-bold text-red-700 mt-1">
                       {importResult.failed}
                     </p>
                   </div>
-                  <XCircle className="w-12 h-12 text-red-500" />
+                  <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 flex-shrink-0" />
                 </div>
               </div>
             </div>
 
             {importResult.errors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
-                  <XCircle className="w-5 h-5" />
-                  Error Details ({importResult.errors.length})
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-6">
+                <h3 className="text-sm sm:text-base md:text-lg font-semibold text-red-900 mb-3 sm:mb-4 flex items-center gap-2">
+                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span>Error Details ({importResult.errors.length})</span>
                 </h3>
-                <div className="max-h-96 overflow-y-auto space-y-2">
+                <div className="max-h-60 sm:max-h-80 md:max-h-96 overflow-y-auto space-y-2">
                   {importResult.errors.map((error, index) => (
                     <div
                       key={index}
-                      className="p-3 bg-white rounded-lg text-sm text-red-700 border border-red-200"
+                      className="p-2 sm:p-3 bg-white rounded-lg text-xs sm:text-sm text-red-700 border border-red-200 break-words"
                     >
                       {error}
                     </div>
@@ -365,23 +293,48 @@ const Toast: React.FC<{
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl animate-slide-in ${
+      className={`fixed top-4 right-4 left-4 sm:left-auto sm:right-4 sm:max-w-md z-50 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl animate-slide-in ${
         type === "success"
           ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white"
           : "bg-gradient-to-r from-red-600 to-pink-600 text-white"
       }`}
     >
       {type === "success" ? (
-        <CheckCircle className="w-5 h-5" />
+        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
       ) : (
-        <XCircle className="w-5 h-5" />
+        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
       )}
-      <span className="text-sm font-semibold">{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-80">
-        <XCircle size={16} />
+      <span className="text-xs sm:text-sm font-semibold flex-1">{message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-80 flex-shrink-0">
+        <XCircle size={14} className="sm:w-4 sm:h-4" />
       </button>
     </div>
   );
 };
+
+// Add animation styles
+const styles = `
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+`;
+
+// Inject styles
+if (typeof document !== "undefined") {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
 
 export default ImportAdvertisement;
