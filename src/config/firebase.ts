@@ -4,13 +4,12 @@ import { browserSessionPersistence, getAuth, setPersistence } from 'firebase/aut
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBZUcnmeqrJosFN6O-Ln2RF3x-fphkWArA",
-  authDomain: "enquirysystem-70c20.firebaseapp.com",
-  projectId: "enquirysystem-70c20",
-  storageBucket: "enquirysystem-70c20.firebasestorage.app",
-  messagingSenderId: "629878804798",
-  appId: "1:629878804798:web:5f213e0a992e694fe1dc6f",
-  measurementId: "G-HYFWVHJVL2"
+  apiKey: "AIzaSyDZXd8SIcnils4jpEUpt_gW5ME1NVxPmFE",
+  authDomain: "enquirymgmt-662ed.firebaseapp.com",
+  projectId: "enquirymgmt-662ed",
+  storageBucket: "enquirymgmt-662ed.firebasestorage.app",
+  messagingSenderId: "249253198264",
+  appId: "1:249253198264:web:3c9ba9937ac81eb1abb74d"
 };
 // Initialize Firebase - Primary App
 const app = initializeApp(firebaseConfig);
