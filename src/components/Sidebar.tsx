@@ -106,13 +106,13 @@ const Sidebar: React.FC = () => {
       icon: <FaPlusCircle />,
       group: "main",
     },
-    {
-      path: "/search-enquiry",
-      label: "Search Enquiry",
-      permission: "Search Enquiry",
-      icon: <FaSearch />,
-      group: "main",
-    },
+    // {
+    //   path: "/search-enquiry",
+    //   label: "Search Enquiry",
+    //   permission: "Search Enquiry",
+    //   icon: <FaSearch />,
+    //   group: "main",
+    // },
     {
       path: "/view-enquiry",
       label: "View Enquiry",

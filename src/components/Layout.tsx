@@ -72,12 +72,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: "View Enquiries",
       requiredPermission: "viewEnquiry",
     },
-    {
-      path: "/search-enquiry",
-      icon: <Search size={20} />,
-      label: "Search Enquiry",
-      requiredPermission: "searchEnquiry",
-    },
+    // {
+    //   path: "/search-enquiry",
+    //   icon: <Search size={20} />,
+    //   label: "Search Enquiry",
+    //   requiredPermission: "searchEnquiry",
+    // },
     {
       path: "/todays-followups",
       icon: <Eye size={20} />,
