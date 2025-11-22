@@ -15,7 +15,7 @@ import AdminProfile from "./pages/AdminProfile";
 import UserManagement from "./pages/UserManagement";
 import Unauthorized from "./pages/Unauthorized";
 import PaymentDetails from "./pages/PaymentDetails";
-import TestPasswordChange from "./pages/TestPasswordChange";
+// import TestPasswordChange from "./pages/TestPasswordChange";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { RoleBasedRoute } from "./components/Rolelayout";
@@ -195,7 +195,7 @@ function App() {
               }
             />
 
-            <Route
+            {/* <Route
               path="/test-password-change"
               element={
                 <RoleBasedRoute allowedRoles={["admin"]}>
@@ -204,7 +204,7 @@ function App() {
                   </AppLayout>
                 </RoleBasedRoute>
               }
-            />
+            /> */}
 
             {/* ──────── FALLBACK ──────── */}
             <Route path="*" element={<Navigate to="/" replace />} />

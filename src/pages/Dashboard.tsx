@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   Users,
   UserPlus,
-  Search,
   Calendar,
   Clock,
   TrendingUp,

@@ -75,7 +75,6 @@ const DEFAULT_ADMIN: Omit<User, "id"> = {
   isActive: true,
   permissions: [
     "Add Enquiry",
-    // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
     "View Enquiry",
     "Manage Payment Details",
     "Today's Follow-ups",
@@ -259,7 +258,8 @@ export const authUtils = {
   /** Update user fields (Firestore only - email updates allowed, password via reset email) */
   updateUser: async (
     id: string,
-    updates: Partial<User>
+    updates: Partial<User>,
+    newPassword?: string
   ): Promise<boolean> => {
     try {
       console.log("🔄 Updating user info...");
@@ -276,32 +276,62 @@ export const authUtils = {
         if (emailInUse) {
           throw new Error("This email is already in use by another account.");
         }
-        
+
         console.warn(
           "⚠️ Email updated in Firestore. User should verify their email or use password reset to sync Firebase Auth."
         );
       }
 
       // Update only Firestore data (excluding system fields)
-      const { 
-        firebaseUid, 
-        createdAt, 
-        id: userId, 
+      const {
+        firebaseUid,
+        createdAt,
+        id: userId,
         passwordChangedAt,
-        password, 
-        ...data 
+        password,
+        ...data
       } = updates;
-      
+
       const ref = doc(db, USERS_COLLECTION, id);
       await updateDoc(ref, {
         ...data,
         updatedAt: new Date().toISOString(),
       });
 
+      // Note: newPassword parameter is ignored here since Firebase Auth
+      // password changes should be done via password reset email
+      if (newPassword) {
+        console.warn(
+          "⚠️ Password changes should be done via sendPasswordResetEmail method"
+        );
+      }
+
       console.log("✅ User updated successfully");
       return true;
     } catch (err: any) {
       console.error("❌ updateUser error:", err);
+      throw err;
+    }
+  },
+
+  /** Update user password using password reset email */
+  updateUserPassword: async (
+    userId: string,
+    _newPassword: string
+  ): Promise<boolean> => {
+    try {
+      const user = await authUtils.getUserById(userId);
+      if (!user || !user.email) {
+        throw new Error("User not found");
+      }
+
+      // Send password reset email instead of directly changing password
+      await authUtils.sendPasswordResetEmail(user.email);
+      
+      console.log("✅ Password reset email sent to user");
+      return true;
+    } catch (err) {
+      console.error("❌ updateUserPassword error:", err);
       throw err;
     }
   },
@@ -383,8 +413,7 @@ export const authUtils = {
   },
 
   setCurrentUser: (user: User | null) => {
-    if (user)
-      sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    if (user) sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
     else sessionStorage.removeItem(AUTH_STORAGE_KEY);
   },
 

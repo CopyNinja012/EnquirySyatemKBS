@@ -54,10 +54,31 @@ export const userService = {
   /** Update user data (name, role, permissions, etc.) */
   async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     try {
+      // Call with 2 arguments since newPassword is optional
       return await authUtils.updateUser(id, updates);
     } catch (error) {
       console.error("❌ userService.updateUser error:", error);
       return false;
+    }
+  },
+
+  /** Update user password - sends password reset email */
+  async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    try {
+      return await authUtils.updateUserPassword(userId, newPassword);
+    } catch (error) {
+      console.error("❌ userService.updateUserPassword error:", error);
+      return false;
+    }
+  },
+
+  /** Send password reset email */
+  async sendPasswordResetEmail(email: string): Promise<boolean> {
+    try {
+      return await authUtils.sendPasswordResetEmail(email);
+    } catch (error) {
+      console.error("❌ userService.sendPasswordResetEmail error:", error);
+      throw error;
     }
   },
 

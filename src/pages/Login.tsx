@@ -26,7 +26,7 @@ const sendPasswordResetOTP = async (email: string): Promise<boolean> => {
   });
 };
 
-const verifyOTP = async (email: string, otp: string): Promise<boolean> => {
+const verifyOTP = async (_email: string, otp: string): Promise<boolean> => {
   // Simulate API call
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -42,8 +42,8 @@ const verifyOTP = async (email: string, otp: string): Promise<boolean> => {
 
 const resetPassword = async (
   email: string,
-  otp: string,
-  newPassword: string
+  _otp: string,
+  _newPassword: string
 ): Promise<boolean> => {
   // Simulate API call
   return new Promise((resolve) => {
