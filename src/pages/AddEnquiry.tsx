@@ -162,7 +162,7 @@ const Field: React.FC<{
               ? isDuplicate
                 ? "border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:border-yellow-500 bg-yellow-50"
                 : "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-              : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              : "border-gray-300 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
           } hover:border-gray-400 focus:outline-none`}
         />
         {maxLength && value.length > 0 && (
@@ -218,7 +218,7 @@ const TextAreaField: React.FC<{
         className={`w-full border rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 resize-none ${
           error
             ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-            : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+            : "border-gray-300 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
         } hover:border-gray-400 focus:outline-none`}
       />
       {error && (
@@ -267,7 +267,7 @@ const DropdownField: React.FC<{
           } border rounded-lg text-left text-xs sm:text-sm transition-all duration-200 ${
             error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-              : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              : "border-gray-300 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
           } hover:border-gray-400 focus:outline-none ${value ? "text-gray-900" : "text-gray-400"}`}
         >
           <span className="truncate">{value || "Select an option"}</span>
@@ -294,8 +294,8 @@ const DropdownField: React.FC<{
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-green-50 transition-colors ${
-                    value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                  className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-sky-50 transition-colors ${
+                    value === option ? "bg-sky-50 text-sky-700 font-medium" : "text-gray-700"
                   } ${index !== options.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
                 >
                   {option}
@@ -401,7 +401,7 @@ const SearchableDropdownField: React.FC<{
           } text-xs sm:text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 ${
             error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-              : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              : "border-gray-300 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
           } hover:border-gray-400 focus:outline-none`}
         />
         {query && (
@@ -433,8 +433,8 @@ const SearchableDropdownField: React.FC<{
                     key={option}
                     type="button"
                     onClick={() => selectOption(option)}
-                    className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-green-50 transition-colors ${
-                      value === option ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                    className={`w-full px-2 sm:px-3 py-2 sm:py-2.5 text-left text-xs sm:text-sm hover:bg-sky-50 transition-colors ${
+                      value === option ? "bg-sky-50 text-sky-700 font-medium" : "text-gray-700"
                     } ${index !== filtered.length - 1 ? "border-b border-gray-100" : ""} first:rounded-t-lg last:rounded-b-lg`}
                   >
                     {option}
@@ -496,7 +496,7 @@ const DateField: React.FC<{
           } text-xs sm:text-sm text-gray-900 ${
             error
               ? "border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500"
-              : "border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              : "border-gray-300 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
           } hover:border-gray-400 focus:outline-none transition-all duration-200`}
         />
       </div>

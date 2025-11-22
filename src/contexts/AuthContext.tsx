@@ -8,6 +8,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
 } from "firebase/auth";
 import {
   collection,
@@ -54,7 +55,6 @@ interface AuthContextType {
   hasPermission: (perm: string) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-  updateUserPassword: (userId: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,7 +75,7 @@ const DEFAULT_ADMIN: Omit<User, "id"> = {
   isActive: true,
   permissions: [
     "Add Enquiry",
-    "Search Enquiry",
+    // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
     "View Enquiry",
     "Manage Payment Details",
     "Today's Follow-ups",
@@ -256,154 +256,71 @@ export const authUtils = {
     }
   },
 
-  /** Update user password - Admin only */
-  updatePassword: async (
-    userId: string,
-    newPassword: string
+  /** Update user fields (Firestore only - email updates allowed, password via reset email) */
+  updateUser: async (
+    id: string,
+    updates: Partial<User>
   ): Promise<boolean> => {
     try {
-      console.log("🔐 Starting password update for user:", userId);
+      console.log("🔄 Updating user info...");
 
-      // Get current user data
-      const currentUser = await authUtils.getUserById(userId);
+      // Get current user
+      const currentUser = await authUtils.getUserById(id);
       if (!currentUser) {
         throw new Error("User not found");
       }
 
-      console.log("📧 User email:", currentUser.email);
-
-      // Step 1: Create new Firebase Auth user with new password
-      console.log("🔄 Creating new auth user with new password...");
-      const cred = await createUserWithEmailAndPassword(
-        secondaryAuth,
-        currentUser.email,
-        newPassword
-      );
-      const newFirebaseUid = cred.user.uid;
-      console.log("✅ New auth user created with UID:", newFirebaseUid);
-
-      // Step 2: Prepare updated user data
-      const updatedUserData = {
-        ...currentUser,
-        firebaseUid: newFirebaseUid,
-        updatedAt: new Date().toISOString(),
-        passwordChangedAt: new Date().toISOString(),
-      };
-      delete (updatedUserData as any).id;
-
-      // Step 3: Save to new Firestore document
-      console.log("💾 Saving to new Firestore document...");
-      const newRef = doc(db, USERS_COLLECTION, newFirebaseUid);
-      await setDoc(newRef, updatedUserData);
-      console.log("✅ New Firestore document created");
-
-      // Step 4: Delete old Firestore document
-      console.log("🗑️ Deleting old Firestore document...");
-      const oldRef = doc(db, USERS_COLLECTION, userId);
-      await deleteDoc(oldRef);
-      console.log("✅ Old Firestore document deleted");
-
-      // Step 5: Sign out from secondary auth
-      await signOut(secondaryAuth);
-      console.log("✅ Secondary auth signed out");
-
-      console.log("✅ Password updated successfully!");
-      console.log("🔐 Old password will no longer work");
-      console.log("🔐 New password is now active");
-
-      return true;
-    } catch (err: any) {
-      console.error("❌ updatePassword error:", err);
-
-      // Handle specific errors
-      if (err.code === "auth/email-already-in-use") {
-        console.error("❌ Email already in use - this shouldn't happen");
-        throw new Error(
-          "Password update failed. The email is already associated with another account."
+      // Check if email is being changed
+      if (updates.email && updates.email !== currentUser.email) {
+        const emailInUse = await authUtils.emailExists(updates.email, id);
+        if (emailInUse) {
+          throw new Error("This email is already in use by another account.");
+        }
+        
+        console.warn(
+          "⚠️ Email updated in Firestore. User should verify their email or use password reset to sync Firebase Auth."
         );
       }
 
-      if (err.code === "auth/weak-password") {
-        throw new Error("Password is too weak. Please use a stronger password.");
-      }
-
-      // Clean up secondary auth
-      await signOut(secondaryAuth).catch(() => {});
+      // Update only Firestore data (excluding system fields)
+      const { 
+        firebaseUid, 
+        createdAt, 
+        id: userId, 
+        passwordChangedAt,
+        password, 
+        ...data 
+      } = updates;
       
-      throw new Error(err.message || "Failed to update password");
+      const ref = doc(db, USERS_COLLECTION, id);
+      await updateDoc(ref, {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      });
+
+      console.log("✅ User updated successfully");
+      return true;
+    } catch (err: any) {
+      console.error("❌ updateUser error:", err);
+      throw err;
     }
   },
 
-  /** Update user fields (with optional password change) */
-  updateUser: async (
-    id: string,
-    updates: Partial<User>,
-    newPassword?: string
-  ): Promise<boolean> => {
+  /** Send password reset email to user */
+  sendPasswordResetEmail: async (email: string): Promise<boolean> => {
     try {
-      // If password needs to be updated
-      if (newPassword && newPassword.trim() !== "") {
-        console.log("🔄 Updating user with new password...");
-        
-        // Get current user data
-        const currentUser = await authUtils.getUserById(id);
-        if (!currentUser) {
-          throw new Error("User not found");
-        }
-
-        // Create new auth user with new password
-        const cred = await createUserWithEmailAndPassword(
-          secondaryAuth,
-          currentUser.email,
-          newPassword
-        );
-        const newFirebaseUid = cred.user.uid;
-
-        // Merge current data with updates
-        const updatedData = {
-          ...currentUser,
-          ...updates,
-          firebaseUid: newFirebaseUid,
-          updatedAt: new Date().toISOString(),
-          passwordChangedAt: new Date().toISOString(),
-        };
-
-        // Remove id field
-        const { id: _id, ...firestoreData } = updatedData as any;
-
-        // Create new document with new UID
-        const newRef = doc(db, USERS_COLLECTION, newFirebaseUid);
-        await setDoc(newRef, firestoreData);
-
-        // Delete old document
-        const oldRef = doc(db, USERS_COLLECTION, id);
-        await deleteDoc(oldRef);
-
-        // Clean up secondary auth
-        await signOut(secondaryAuth);
-
-        console.log("✅ User and password updated successfully");
-        return true;
-      } else {
-        // No password change - just update Firestore
-        const { firebaseUid, createdAt, id: userId, passwordChangedAt, ...data } = updates;
-        const ref = doc(db, USERS_COLLECTION, id);
-        await updateDoc(ref, {
-          ...data,
-          updatedAt: new Date().toISOString(),
-        });
-        console.log("✅ User updated successfully (no password change)");
-        return true;
-      }
+      await firebaseSendPasswordResetEmail(auth, email);
+      console.log("✅ Password reset email sent to:", email);
+      return true;
     } catch (err: any) {
-      console.error("❌ updateUser error:", err);
-      
-      if (err.code === "auth/email-already-in-use") {
-        throw new Error("Email already in use. Password not updated.");
+      console.error("❌ sendPasswordResetEmail error:", err);
+      if (err.code === "auth/user-not-found") {
+        throw new Error("No user found with this email address.");
       }
-      
-      await signOut(secondaryAuth).catch(() => {});
-      return false;
+      if (err.code === "auth/invalid-email") {
+        throw new Error("Invalid email address.");
+      }
+      throw new Error("Failed to send password reset email. Please try again.");
     }
   },
 
@@ -415,6 +332,7 @@ export const authUtils = {
         isActive: false,
         updatedAt: new Date().toISOString(),
       });
+      console.log("✅ User deactivated");
       return true;
     } catch (err) {
       console.error("❌ deleteUser error:", err);
@@ -573,17 +491,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return currentUser?.permissions?.includes(permission) ?? false;
   };
 
-  const updateUserPassword = async (
-    userId: string,
-    newPassword: string
-  ): Promise<boolean> => {
-    if (!isAdmin()) {
-      console.error("❌ Only admins can update passwords");
-      throw new Error("Only administrators can update passwords");
-    }
-    return await authUtils.updatePassword(userId, newPassword);
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -595,7 +502,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         hasPermission,
         isAuthenticated,
         isLoading,
-        updateUserPassword,
       }}
     >
       {!isLoading && children}

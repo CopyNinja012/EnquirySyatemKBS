@@ -159,26 +159,28 @@ const TodaysFollowUps: React.FC = () => {
           />
         </div>
 
-        {/* Search */}
-        <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-5 sm:mb-6 relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name, mobile, or email"
-            className="w-full pl-9 pr-8 h-10 rounded-lg border text-sm focus:ring-2 focus:ring-green-500 outline-none"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X size={16} />
-            </button>
-          )}
+        {/* Search - Fixed positioning */}
+        <div className="bg-white rounded-lg shadow-sm mb-5 sm:mb-6">
+          <div className="relative p-3 sm:p-4">
+            <Search
+              size={18}
+              className="absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, mobile, or email"
+              className="w-full pl-10 sm:pl-11 pr-10 h-10 sm:h-11 rounded-lg border text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-none transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-6 sm:right-7 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Table / List */}
@@ -214,7 +216,7 @@ const TodaysFollowUps: React.FC = () => {
                           setSelected(f);
                           setEditing(false);
                         }}
-                        className={`cursor-pointer hover:bg-green-50 ${
+                        className={`cursor-pointer hover:bg-sky-50 transition-colors ${
                           i % 2 ? "bg-gray-50" : "bg-white"
                         }`}
                       >
@@ -239,7 +241,7 @@ const TodaysFollowUps: React.FC = () => {
                       setSelected(f);
                       setEditing(false);
                     }}
-                    className="w-full text-left p-4 hover:bg-green-50 active:bg-green-100 cursor-pointer transition-colors"
+                    className="w-full text-left p-4 hover:bg-sky-50 active:bg-sky-100 cursor-pointer transition-colors"
                   >
                     <p className="font-semibold text-gray-800 text-sm">
                       {f.fullName}
@@ -503,7 +505,6 @@ const DetailModal = ({
 const Section = ({ title, icon, children }: any) => (
   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-3">
     <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-800 border-b pb-2">
-      {/* changed from text-green-600 to text-blue-600 */}
       <span className="text-sky-600">{icon}</span> {title}
     </h3>
     {children}
@@ -533,14 +534,14 @@ const Field = ({
           value={value ?? ""}
           onChange={(e) => onChange && onChange(e.target.value)}
           rows={3}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none transition-all"
         />
       ) : (
         <input
           value={value ?? ""}
           onChange={(e) => onChange && onChange(e.target.value)}
           type="text"
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none transition-all"
         />
       )
     ) : (
@@ -572,7 +573,7 @@ const Dropdown = ({
       <select
         value={value ?? ""}
         onChange={(e) => onChange && onChange(e.target.value)}
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none transition-all"
       >
         <option value="">Select {label}</option>
         {options.map((o: string) => (

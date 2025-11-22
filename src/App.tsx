@@ -5,7 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AddEnquiry from "./pages/AddEnquiry";
 import ViewEnquiry from "./pages/ViewEnquiry";
-import SearchEnquiry from "./pages/SearchEnquiry";
+//import SearchEnquiry from "./pages/SearchEnquiry";
 import TodayFollowUps from "./pages/TodaysFollowUps";
 import AllFollowUps from "./pages/AllFollowUps";
 import ImportAdvertisement from "./pages/ImportAdvertisement";
@@ -106,7 +106,7 @@ function App() {
               }
             />
 
-            <Route
+            {/* <Route
               path="/search-enquiry"
               element={
                 <ProtectedRoute permission="Search Enquiry">
@@ -115,7 +115,7 @@ function App() {
                   </AppLayout>
                 </ProtectedRoute>
               }
-            />
+            /> */}
 
             <Route
               path="/today-followups"

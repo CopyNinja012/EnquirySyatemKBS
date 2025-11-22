@@ -177,7 +177,7 @@ const ViewEnquiry: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by Name, Mobile or Email"
-              className="w-full border pl-9 pr-8 h-10 text-sm rounded-lg focus:ring-2 focus:ring-green-200 focus:outline-none"
+              className="w-full border pl-9 pr-8 h-10 text-sm rounded-lg focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
             />
             {search && (
               <button
@@ -281,7 +281,7 @@ const ViewEnquiry: React.FC = () => {
                           setSelected(e);
                           setEditing(false);
                         }}
-                        className={`cursor-pointer hover:bg-green-50 ${
+                        className={`cursor-pointer hover:bg-sky-50 ${
                           i % 2 ? "bg-gray-50" : "bg-white"
                         }`}
                       >
@@ -306,7 +306,7 @@ const ViewEnquiry: React.FC = () => {
                       setSelected(e);
                       setEditing(false);
                     }}
-                    className="w-full text-left p-4 hover:bg-green-50 active:bg-green-100 cursor-pointer transition-colors"
+                    className="w-full text-left p-4 hover:bg-sky-50 active:bg-sky-100 cursor-pointer transition-colors"
                   >
                     <p className="text-sm font-semibold text-gray-800">
                       {e.fullName}
@@ -366,13 +366,13 @@ const Filter = ({ label, value, setValue, options, type }: any) => (
         type="date"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="h-9 border rounded-lg px-3 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+        className="h-9 border rounded-lg px-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
       />
     ) : (
       <select
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="h-9 border rounded-lg px-3 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+        className="h-9 border rounded-lg px-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
       >
         {options.map((o: string) => (
           <option key={o}>{o}</option>
@@ -566,7 +566,6 @@ const DetailModal = ({
 const Section = ({ title, icon, children }: any) => (
   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-3">
     <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-800 border-b pb-2">
-      {/* changed from text-green-600 to text-blue-600 */}
       <span className="text-sky-600">{icon}</span> {title}
     </h3>
     {children}
@@ -596,13 +595,13 @@ const Field = ({
           value={value ?? ""}
           onChange={(e) => onChange && onChange(e.target.value)}
           rows={3}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
         />
       ) : (
         <input
           value={value ?? ""}
           onChange={(e) => onChange && onChange(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
         />
       )
     ) : (
@@ -634,7 +633,7 @@ const Dropdown = ({
       <select
         value={value ?? ""}
         onChange={(e) => onChange && onChange(e.target.value)}
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
       >
         <option value="">Select {label}</option>
         {options.map((o: string) => (

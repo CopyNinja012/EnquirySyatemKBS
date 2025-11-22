@@ -20,7 +20,7 @@ import {
 --------------------------------------------- */
 const ALL_PERMISSIONS = [
   "Add Enquiry",
-  "Search Enquiry",
+  // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
   "View Enquiry",
   "Manage Payment Details",
   "Today's Follow-ups",
@@ -34,7 +34,7 @@ const ROLE_DEFAULTS: Record<"admin" | "user", string[]> = {
   admin: [...ALL_PERMISSIONS],
   user: [
     "Add Enquiry",
-    "Search Enquiry",
+    // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
     "View Enquiry",
     "Today's Follow-ups",
     "View Advertisement Data",
@@ -239,7 +239,7 @@ const UserManagement: React.FC = () => {
                 resetForm();
                 setShowAddModal(true);
               }}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-green-700 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sky-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-sky-700 transition-colors"
             >
               <UserPlus size={18} className="sm:w-5 sm:h-5" /> Add User
             </button>
@@ -249,14 +249,14 @@ const UserManagement: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
             <Stat label="Total Users" count={activeUsers.length} color="blue" />
             <Stat label="Admins" count={adminCount} color="purple" />
-            <Stat label="Users" count={userCount} color="green" />
+            <Stat label="Users" count={userCount} color="sky" />
           </div>
 
           {/* Users table / mobile list */}
           <div className="bg-white rounded-lg border overflow-hidden shadow-sm">
             {initialLoading ? (
               <div className="py-10 flex justify-center items-center">
-                <div className="h-8 w-8 border-2 border-t-green-600 border-gray-200 rounded-full animate-spin" />
+                <div className="h-8 w-8 border-2 border-t-sky-600 border-gray-200 rounded-full animate-spin" />
               </div>
             ) : activeUsers.length === 0 ? (
               <p className="py-8 text-center text-sm sm:text-base text-gray-500">
@@ -566,7 +566,7 @@ const UserModal = ({
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-start p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-xl w-full max-w-2xl my-6 sm:my-8 shadow-2xl">
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl">
+        <div className="bg-gradient-to-r from-sky-600 to-sky-700 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl">
           <h3 className="font-semibold text-base sm:text-lg">{title}</h3>
           <button
             onClick={onCancel}
@@ -611,7 +611,7 @@ const UserModal = ({
                 Role
               </label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 value={formData.role}
                 onChange={(e) =>
                   handleRoleChange(e.target.value as "admin" | "user")
@@ -665,7 +665,7 @@ const UserModal = ({
                           password: e.target.value,
                         })
                       }
-                      className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                         errors.password ? "border-red-400" : "border-gray-300"
                       }`}
                       placeholder="Enter new password"
@@ -703,7 +703,7 @@ const UserModal = ({
                   onChange={(e) =>
                     onFormChange({ ...formData, password: e.target.value })
                   }
-                  className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                     errors.password ? "border-red-400" : "border-gray-300"
                   }`}
                   placeholder="Enter password"
@@ -764,7 +764,7 @@ const UserModal = ({
           <button
             onClick={onSave}
             disabled={isLoading}
-            className="bg-green-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-sky-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-sky-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading && (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -795,7 +795,7 @@ const Field = ({
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
+      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
         error ? "border-red-400" : "border-gray-300"
       }`}
       disabled={disabled}

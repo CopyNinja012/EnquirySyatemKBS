@@ -313,7 +313,7 @@ const PaymentDetails: React.FC = () => {
             placeholder="Search by name, mobile, email, education..."
             value={filter.search}
             onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-            className="w-full sm:flex-1 h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-green-200 focus:border-green-500"
+            className="w-full sm:flex-1 h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
           />
         </div>
 
@@ -346,7 +346,7 @@ const PaymentDetails: React.FC = () => {
                       return (
                         <tr
                           key={e.id}
-                          className="border-b hover:bg-green-50 cursor-pointer"
+                          className="border-b hover:bg-sky-50 cursor-pointer transition-colors"
                           onClick={() => openReceipt(e)}
                         >
                           <td className="py-2.5 px-3 whitespace-nowrap">
@@ -382,7 +382,7 @@ const PaymentDetails: React.FC = () => {
                     <button
                       key={e.id}
                       onClick={() => openReceipt(e)}
-                      className="w-full text-left border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm cursor-pointer hover:bg-green-50 transition-colors"
+                      className="w-full text-left border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm cursor-pointer hover:bg-sky-50 transition-colors"
                     >
                       <p className="font-semibold text-gray-900 text-sm">
                         {e.fullName}
@@ -484,10 +484,10 @@ const ReceiptModal: React.FC<{
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
         {/* Header */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border-b bg-green-600 text-white">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border-b bg-sky-600 text-white">
           <div>
             <h3 className="text-base sm:text-lg font-semibold">Fee Receipt</h3>
-            <p className="text-xs text-green-100 truncate max-w-xs sm:max-w-sm">
+            <p className="text-xs text-sky-100 truncate max-w-xs sm:max-w-sm">
               {enquiry.fullName}
             </p>
           </div>
@@ -630,14 +630,14 @@ const ReceiptModal: React.FC<{
                 value={form.date}
                 max={today}
                 onChange={(e) => handleChange("date", e.target.value)}
-                className="border border-gray-300 rounded-lg h-9 px-2"
+                className="border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <input
                 type="number"
                 placeholder="Amount ₹"
                 value={form.amount}
                 onChange={(e) => handleChange("amount", e.target.value)}
-                className="border border-gray-300 rounded-lg h-9 px-2"
+                className="border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <select
                 value={form.mode}
@@ -647,7 +647,7 @@ const ReceiptModal: React.FC<{
                     e.target.value as ManualPaymentForm["mode"]
                   )
                 }
-                className="border border-gray-300 rounded-lg h-9 px-2"
+                className="border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               >
                 <option value="">Select Mode</option>
                 <option value="Online">Online</option>
@@ -662,7 +662,7 @@ const ReceiptModal: React.FC<{
                       e.target.value as ManualPaymentForm["offlineType"]
                     )
                   }
-                  className="border border-gray-300 rounded-lg h-9 px-2"
+                  className="border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
                 >
                   <option value="">Type</option>
                   <option value="Cash">Cash</option>
@@ -674,7 +674,7 @@ const ReceiptModal: React.FC<{
                 rows={2}
                 value={form.note}
                 onChange={(e) => handleChange("note", e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1 sm:col-span-2 resize-none"
+                className="border border-gray-300 rounded-lg px-2 py-1 sm:col-span-2 resize-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <div className="sm:col-span-2 flex justify-end gap-2 mt-1">
                 <button
@@ -821,13 +821,13 @@ const ManualPaymentModal: React.FC<{
                 placeholder="Search by name or mobile..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm focus:ring-2 focus:ring-green-200"
+                className="w-full border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={educationFilter}
                   onChange={(e) => setEducationFilter(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm"
+                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
                 >
                   {educationOptions.map((opt) => (
                     <option key={opt} value={opt}>
@@ -838,7 +838,7 @@ const ManualPaymentModal: React.FC<{
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm"
+                  className="flex-1 border border-gray-300 rounded-lg h-10 px-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
                 >
                   {statusOptions.map((opt) => (
                     <option key={opt} value={opt}>
@@ -865,7 +865,7 @@ const ManualPaymentModal: React.FC<{
                       key={e.id}
                       type="button"
                       onClick={() => setSelected(e)}
-                      className={`w-full text-left px-3 py-2 text-xs sm:text-sm border-b last:border-b-0 hover:bg-sky-50 ${
+                      className={`w-full text-left px-3 py-2 text-xs sm:text-sm border-b last:border-b-0 hover:bg-sky-50 transition-colors ${
                         selected?.id === e.id ? "bg-sky-100" : "bg-white"
                       }`}
                     >
@@ -926,14 +926,14 @@ const ManualPaymentModal: React.FC<{
                 value={form.date}
                 max={today}
                 onChange={(e) => handleChange("date", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg h-9 px-2"
+                className="w-full border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <input
                 type="number"
                 placeholder="Amount ₹"
                 value={form.amount}
                 onChange={(e) => handleChange("amount", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg h-9 px-2"
+                className="w-full border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <select
                 value={form.mode}
@@ -943,7 +943,7 @@ const ManualPaymentModal: React.FC<{
                     e.target.value as ManualPaymentForm["mode"]
                   )
                 }
-                className="w-full border border-gray-300 rounded-lg h-9 px-2"
+                className="w-full border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               >
                 <option value="">Select Mode</option>
                 <option value="Online">Online</option>
@@ -958,7 +958,7 @@ const ManualPaymentModal: React.FC<{
                       e.target.value as ManualPaymentForm["offlineType"]
                     )
                   }
-                  className="w-full border border-gray-300 rounded-lg h-9 px-2"
+                  className="w-full border border-gray-300 rounded-lg h-9 px-2 focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
                 >
                   <option value="">Type</option>
                   <option value="Cash">Cash</option>
@@ -970,7 +970,7 @@ const ManualPaymentModal: React.FC<{
                 rows={3}
                 value={form.note}
                 onChange={(e) => handleChange("note", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1 resize-none"
+                className="w-full border border-gray-300 rounded-lg px-2 py-1 resize-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500 focus:outline-none"
               />
               <div className="flex justify-end gap-2 pt-1">
                 <button

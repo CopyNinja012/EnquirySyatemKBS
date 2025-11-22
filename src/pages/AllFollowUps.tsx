@@ -210,19 +210,19 @@ const FollowUps: React.FC = () => {
         {/* Search */}
         <div className="bg-white p-3 rounded-lg shadow-sm mb-4 sm:mb-6 relative">
           <Search
-            className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
             size={16}
           />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by Name, Mobile, Email or ID..."
-            className="w-full border rounded-lg pl-9 sm:pl-10 pr-8 sm:pr-10 h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-green-500 outline-none"
+            className="w-full border rounded-lg pl-9 sm:pl-10 pr-8 sm:pr-10 h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-none transition-all"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={16} />
             </button>
@@ -240,7 +240,7 @@ const FollowUps: React.FC = () => {
               <div
                 key={f.id}
                 onClick={() => openRow(f)}
-                className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:px-4 py-3 hover:bg-green-50 cursor-pointer gap-2 sm:gap-0 transition-colors"
+                className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:px-4 py-3 hover:bg-sky-50 cursor-pointer gap-2 sm:gap-0 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm sm:text-base text-gray-800 truncate">
@@ -620,7 +620,7 @@ const Editable = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
+          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-none transition-all ${
             error ? "border-red-400" : "border-gray-300"
           }`}
         />
@@ -629,7 +629,7 @@ const Editable = ({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
+          className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-none transition-all ${
             error ? "border-red-400" : "border-gray-300"
           }`}
         />
@@ -659,7 +659,7 @@ const EditableSelect = ({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-200 outline-none ${
+        className={`w-full border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-none transition-all ${
           error ? "border-red-400" : "border-gray-300"
         }`}
       >
