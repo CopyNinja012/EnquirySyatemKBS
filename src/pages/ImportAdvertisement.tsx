@@ -44,8 +44,15 @@ const ImportAdvertisement: React.FC = () => {
   };
 
   const handleImport = async () => {
+    // ✅ Check if file exists
     if (!file) {
       showToast("Please select a file first", "error");
+      return;
+    }
+
+    // ✅ Check if user is logged in
+    if (!currentUser) {
+      showToast("Please login to import data", "error");
       return;
     }
 
@@ -53,63 +60,106 @@ const ImportAdvertisement: React.FC = () => {
     setImportResult(null);
 
     try {
+      console.log("📁 Reading file:", file.name); // Debug log
+
+      // ✅ Read file as array buffer
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
+      
+      console.log("📊 Workbook sheets:", workbook.SheetNames); // Debug log
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+      console.log("📋 Parsed data:", jsonData); // Debug log
+      console.log("📏 Total rows:", jsonData.length); // Debug log
+
+      // ✅ Check if data exists
       if (jsonData.length === 0) {
         showToast("Excel file is empty", "error");
         setImporting(false);
         return;
       }
 
-      const enquiries = jsonData.map((row: any) => ({
-        name: String(row.Name || row.name || "").trim(),
-        phoneNo: String(
-          row["Phone No"] ||
-            row["Phone Number"] ||
-            row.phoneNo ||
-            row.phone ||
-            ""
-        ).replace(/\D/g, ""),
-        email: String(row.Email || row.email || "").trim(),
-        aadharNo:
-          row["Aadhar No"] || row.aadharNo || row.aadhar
-            ? String(row["Aadhar No"] || row.aadharNo || row.aadhar).replace(
-                /\D/g,
-                ""
-              )
-            : "",
-        panNo:
-          row["PAN No"] || row.panNo || row.pan
-            ? String(row["PAN No"] || row.panNo || row.pan)
-                .trim()
-                .toUpperCase()
-            : "",
-      }));
+      // ✅ Map and validate data
+      const enquiries = jsonData.map((row: any, index: number) => {
+        console.log(`Processing row ${index + 1}:`, row); // Debug log
 
-      const result = advertisementStorage.addBulkAdvertisementEnquiries(
+        const enquiry = {
+          name: String(row.Name || row.name || "").trim(),
+          phoneNo: String(
+            row["Phone No"] ||
+              row["Phone Number"] ||
+              row.phoneNo ||
+              row.phone ||
+              ""
+          ).replace(/\D/g, ""),
+          email: String(row.Email || row.email || "").trim(),
+          aadharNo:
+            row["Aadhar No"] || row.aadharNo || row.aadhar
+              ? String(row["Aadhar No"] || row.aadharNo || row.aadhar).replace(
+                  /\D/g,
+                  ""
+                )
+              : "",
+          panNo:
+            row["PAN No"] || row.panNo || row.pan
+              ? String(row["PAN No"] || row.panNo || row.pan)
+                  .trim()
+                  .toUpperCase()
+              : "",
+        };
+
+        console.log(`Mapped enquiry ${index + 1}:`, enquiry); // Debug log
+        return enquiry;
+      });
+
+      console.log("✅ Total enquiries to import:", enquiries.length); // Debug log
+      console.log("👤 Current user:", currentUser.username); // Debug log
+
+      // ✅ FIXED: Await the result immediately
+      const result = await advertisementStorage.addBulkAdvertisementEnquiries(
         enquiries,
-        currentUser?.username
+        currentUser.username
       );
 
-      setImportResult(await result);
+      console.log("📊 Import result:", result); // Debug log
 
-      if ((await result).success > 0) {
+      // ✅ Use result directly (no need to await again)
+      setImportResult(result);
+
+      if (result.success > 0) {
         showToast(
-          `Successfully imported ${(await result).success} records`,
+          `Successfully imported ${result.success} records`,
           "success"
         );
       }
 
-      if ((await result).failed > 0) {
-        showToast(`Failed to import ${(await result).failed} records`, "error");
+      if (result.failed > 0) {
+        showToast(`Failed to import ${result.failed} records`, "error");
       }
+
+      // ✅ Clear file after successful import
+      if (result.success > 0) {
+        clearFile();
+      }
+
     } catch (error) {
-      console.error("Error importing file:", error);
-      showToast("Error processing Excel file", "error");
+      console.error("❌ Error importing file:", error); // Enhanced error log
+      
+      // ✅ Better error messages
+      if (error instanceof Error) {
+        showToast(`Error: ${error.message}`, "error");
+      } else {
+        showToast("Error processing Excel file", "error");
+      }
+      
+      setImportResult({
+        success: 0,
+        failed: 0,
+        errors: [error instanceof Error ? error.message : "Unknown error occurred"]
+      });
     } finally {
       setImporting(false);
     }
@@ -135,6 +185,18 @@ const ImportAdvertisement: React.FC = () => {
             Upload Excel file to import advertisement enquiry data in bulk
           </p>
         </div>
+
+        {/* ✅ User Warning */}
+        {!currentUser && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+              <p className="text-sm text-yellow-800 font-medium">
+                Please login to import data
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Upload Section */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
@@ -190,7 +252,7 @@ const ImportAdvertisement: React.FC = () => {
           <div className="mt-4 sm:mt-6">
             <button
               onClick={handleImport}
-              disabled={!file || importing}
+              disabled={!file || importing || !currentUser}
               className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-sky-600 to-blue-600 text-white rounded-xl hover:from-sky-700 hover:to-blue-700 transition-all duration-300 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-105"
             >
               {importing ? (

@@ -40,7 +40,7 @@ interface FormErrors {
 }
 
 // ------------------------------------------------------------------
-// Validation helpers
+// Validation helpers - ADDRESS VALIDATION REMOVED
 // ------------------------------------------------------------------
 const ValidationHelpers = {
   validateFullName: (name: string): string => {
@@ -70,12 +70,7 @@ const ValidationHelpers = {
     if (cleanAadhar === "000000000000" || cleanAadhar === "111111111111") return "Invalid Aadhar number format";
     return "";
   },
-  validateAddress: (address: string): string => {
-    if (!address.trim()) return "Address is required";
-    if (address.trim().length < 10) return "Address must be at least 10 characters";
-    if (address.trim().length > 500) return "Address must not exceed 500 characters";
-    return "";
-  },
+  // ✅ ADDRESS VALIDATION COMPLETELY REMOVED
   validateDate: (date: string, fieldName: string, allowPast: boolean = false): string => {
     if (!date) return `${fieldName} is required`;
 
@@ -516,23 +511,32 @@ const DateField: React.FC<{
   );
 };
 
+// ✅ UPDATED TOAST WITH SKY BLUE COLOR
 const Toast: React.FC<{
   message: string;
   type: "success" | "error";
   onClose: () => void;
 }> = ({ message, type, onClose }) => {
   React.useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
+    // Calculate duration based on message length (min 3s, max 7s)
+    const baseDuration = 3000;
+    const additionalTime = Math.min(message.length * 40, 4000);
+    const totalDuration = baseDuration + additionalTime;
+    
+    const timer = setTimeout(onClose, totalDuration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, message]);
+
   return (
     <div
-      className={`fixed top-4 right-4 left-4 sm:left-auto sm:right-4 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg shadow-lg animate-slide-in-right ${
-        type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+      className={`fixed top-4 right-4 left-4 sm:left-auto sm:right-4 sm:max-w-xl z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 rounded-lg shadow-2xl animate-slide-in-right ${
+        type === "success" 
+          ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white"  // ✅ CHANGED TO SKY BLUE
+          : "bg-gradient-to-r from-red-600 to-pink-600 text-white"
       }`}
     >
       {type === "success" ? (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -540,7 +544,7 @@ const Toast: React.FC<{
           />
         </svg>
       ) : (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -548,9 +552,11 @@ const Toast: React.FC<{
           />
         </svg>
       )}
-      <span className="text-xs sm:text-sm font-medium flex-1">{message}</span>
-      <button onClick={onClose} className="ml-1 sm:ml-2 hover:opacity-80 flex-shrink-0">
-        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+      <span className="text-sm sm:text-base font-medium flex-1 break-words leading-snug">
+        {message}
+      </span>
+      <button onClick={onClose} className="ml-1 sm:ml-2 hover:opacity-80 flex-shrink-0 transition-opacity">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -769,6 +775,7 @@ const AddEnquiry: React.FC = () => {
     validateField(field);
   };
 
+  // ✅ ADDRESS VALIDATION REMOVED
   const validateField = async (field: keyof FormData) => {
     const value = formData[field];
     let error = "";
@@ -800,8 +807,9 @@ const AddEnquiry: React.FC = () => {
         }
         break;
 
+      // ✅ ADDRESS - NO VALIDATION
       case "address":
-        error = ValidationHelpers.validateAddress(value);
+        // Address accepts any characters, no validation
         break;
 
       case "aadharNumber":
@@ -925,13 +933,14 @@ const AddEnquiry: React.FC = () => {
     return error;
   };
 
+  // ✅ ADDRESS REMOVED FROM REQUIRED FIELDS
   const validate = async (): Promise<boolean> => {
     const newErrors: FormErrors = {};
     const alwaysRequiredFields: (keyof FormData)[] = [
       "fullName",
       "mobile",
       "email",
-      "address",
+      // "address" - REMOVED
       "interestedStatus",
       "status",
       "callBackDate",
@@ -1070,22 +1079,38 @@ const AddEnquiry: React.FC = () => {
       };
 
       const savedEnquiry = await storageUtils.saveEnquiry(enquiryToSave as any);
+      
+      // ✅ PERSONALIZED SUCCESS MESSAGE
+      let successMessage = "";
+      
+      if (isAdmin() && isConfirmed && paidAmount > 0) {
+        successMessage = `✅ Enquiry confirmed for "${savedEnquiry.fullName}"! Payment of ₹${paidAmount.toLocaleString()} recorded. (ID: ${savedEnquiry.id})`;
+      } else if (isConfirmed) {
+        successMessage = `✅ "${savedEnquiry.fullName}" confirmed successfully! Status: ${savedEnquiry.status} (ID: ${savedEnquiry.id})`;
+      } else {
+        successMessage = `✅ Enquiry for "${savedEnquiry.fullName}" added successfully! Status: ${savedEnquiry.status}`;
+      }
+      
       setToast({
-        message: `✅ Enquiry added successfully! ID: ${savedEnquiry.id}`,
+        message: successMessage,
         type: "success",
       });
 
       if (isAdmin() && paidAmount > 0) {
-        setTimeout(() => navigate("/payment-details"), 1500);
+        setTimeout(() => navigate("/payment-details"), 2500);
       } else {
-        setTimeout(() => resetForm(), 1500);
+        setTimeout(() => {
+          resetForm();
+          storageUtils.getStatistics().then(setStats);
+        }, 2500);
       }
     } catch (error) {
+      console.error("Error submitting enquiry:", error);
       setToast({
         message:
           error instanceof Error
-            ? error.message
-            : "Failed to submit enquiry. Please try again.",
+            ? `❌ ${error.message}`
+            : "❌ Failed to submit enquiry. Please try again.",
         type: "error",
       });
     } finally {
@@ -1326,15 +1351,16 @@ const AddEnquiry: React.FC = () => {
                   maxLength={100}
                 />
 
+                {/* ✅ ADDRESS FIELD - OPTIONAL, NO VALIDATION */}
                 <TextAreaField
                   label="Address"
                   name="address"
                   value={formData.address}
                   onChange={(v) => handleChange("address", v)}
                   onBlur={() => handleBlur("address")}
-                  placeholder="Enter complete address"
+                  placeholder="Enter complete address (optional - accepts any text)"
                   error={touched.address ? errors.address : ""}
-                  required
+                  // NO required prop - address is optional
                   rows={3}
                 />
 
@@ -1520,7 +1546,7 @@ const AddEnquiry: React.FC = () => {
                 )}
               </div>
 
-              {/* Right Column */}
+              {/* Right Column - continues... */}
               <div className="space-y-4 sm:space-y-5">
                 <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b-2 border-blue-500">
                   <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
@@ -1767,7 +1793,7 @@ const AddEnquiry: React.FC = () => {
                       ? isAdmin()
                         ? "Additional fields are visible since status is Confirmed. Complete Document and Payment Details (including Mode, Cash/Cheque, and Paid Fees Date)."
                         : "Status is Confirmed. Document information is required. Payment details will be managed by administrators."
-                      : "Basic information is required. Select Confirmed to access additional document fields" +
+                      : "Basic information is required. Address is optional and accepts any text. Select Confirmed to access additional document fields" +
                         (isAdmin() ? " and payment details" : "") +
                         "."}
                   </p>
