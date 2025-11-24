@@ -288,7 +288,7 @@ const AdminProfile: React.FC = () => {
           </form>
         </div>
 
-        {/* Company Card */}
+        {/* Organization Card */}
         <div className="bg-white border rounded-xl shadow-sm p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
             Organization
@@ -324,12 +324,10 @@ const AdminProfile: React.FC = () => {
                 clipRule="evenodd"
               />
             </svg>
-            <div>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                Swipe horizontally to view all profile details if content
-                appears cut off.
-              </p>
-            </div>
+            <p className="text-xs text-blue-700 leading-relaxed">
+              Swipe horizontally to view all profile details if content appears
+              cut off.
+            </p>
           </div>
         </div>
       </div>
