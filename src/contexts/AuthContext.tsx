@@ -9,6 +9,9 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import {
   collection,
@@ -21,7 +24,8 @@ import {
   where,
   deleteDoc,
 } from "firebase/firestore";
-import { auth, db, secondaryAuth } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { auth, db, secondaryAuth, functions } from "../config/firebase";
 
 /* ───────────────────────────────
    TYPES & CONTEXT
@@ -98,7 +102,7 @@ export const authUtils = {
       const users = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
-        isActive: Boolean(d.data().isActive),
+        isActive: Boolean((d.data() as any).isActive),
       })) as User[];
       return users;
     } catch (err) {
@@ -224,7 +228,6 @@ export const authUtils = {
     password: string
   ): Promise<User> => {
     try {
-      // Use secondary auth instance to prevent logging out the admin
       const cred = await createUserWithEmailAndPassword(
         secondaryAuth,
         userData.email,
@@ -243,7 +246,6 @@ export const authUtils = {
       const ref = doc(db, USERS_COLLECTION, firebaseUid);
       await setDoc(ref, newUser);
 
-      // Sign out from secondary auth immediately to clean up
       await signOut(secondaryAuth);
 
       console.log("✅ User created successfully");
@@ -255,7 +257,7 @@ export const authUtils = {
     }
   },
 
-  /** Update user fields (Firestore only - email updates allowed, password via reset email) */
+  /** Update user fields in Firestore (not password itself) */
   updateUser: async (
     id: string,
     updates: Partial<User>,
@@ -264,13 +266,11 @@ export const authUtils = {
     try {
       console.log("🔄 Updating user info...");
 
-      // Get current user
       const currentUser = await authUtils.getUserById(id);
       if (!currentUser) {
         throw new Error("User not found");
       }
 
-      // Check if email is being changed
       if (updates.email && updates.email !== currentUser.email) {
         const emailInUse = await authUtils.emailExists(updates.email, id);
         if (emailInUse) {
@@ -282,7 +282,6 @@ export const authUtils = {
         );
       }
 
-      // Update only Firestore data (excluding system fields)
       const {
         firebaseUid,
         createdAt,
@@ -298,11 +297,9 @@ export const authUtils = {
         updatedAt: new Date().toISOString(),
       });
 
-      // Note: newPassword parameter is ignored here since Firebase Auth
-      // password changes should be done via password reset email
       if (newPassword) {
         console.warn(
-          "⚠️ Password changes should be done via sendPasswordResetEmail method"
+          "⚠️ newPassword passed to updateUser; password itself must be changed via adminChangeUserPassword or changeOwnPassword."
         );
       }
 
@@ -314,7 +311,100 @@ export const authUtils = {
     }
   },
 
-  /** Update user password using password reset email */
+  /* ----------------------------
+     OTP-BASED FORGOT PASSWORD
+  ---------------------------- */
+
+  _generateOtp: (): string =>
+    Math.floor(100000 + Math.random() * 900000).toString(),
+
+  sendOtpToEmail: async (email: string): Promise<boolean> => {
+    try {
+      const user = await authUtils.findUserByEmail(email);
+      if (!user) throw new Error("No active user found with this email");
+
+      const otp = authUtils._generateOtp();
+      const docRef = doc(db, "password_otps", email);
+
+      await setDoc(docRef, {
+        otp,
+        createdAt: Date.now(),
+      });
+
+      const serviceId = (import.meta as any).env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID;
+      const userId = (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY;
+
+      if (!serviceId || !templateId || !userId) {
+        console.warn(
+          "EmailJS env vars not set - OTP stored but not emailed (dev mode)."
+        );
+        return true;
+      }
+
+      const templateParams = { to_email: email, otp };
+
+      const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: userId,
+          template_params: templateParams,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("EmailJS send failed", await res.text());
+      }
+
+      console.log("✅ OTP generated & stored for", email);
+      return true;
+    } catch (err: any) {
+      console.error("❌ sendOtpToEmail error:", err);
+      throw err;
+    }
+  },
+
+  verifyOtp: async (email: string, otp: string): Promise<boolean> => {
+    try {
+      const ref = doc(db, "password_otps", email);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) throw new Error("OTP not found or expired");
+
+      const data: any = snap.data();
+      const createdAt = Number(data.createdAt || 0);
+
+      if (Date.now() - createdAt > 10 * 60 * 1000) {
+        await deleteDoc(ref).catch(() => {});
+        throw new Error("OTP expired");
+      }
+
+      if (data.otp !== otp) throw new Error("Invalid OTP");
+
+      await deleteDoc(ref).catch(() => {});
+      return true;
+    } catch (err: any) {
+      console.error("❌ verifyOtp error:", err);
+      throw err;
+    }
+  },
+
+  resetPasswordWithOtp: async (email: string): Promise<boolean> => {
+    try {
+      const user = await authUtils.findUserByEmail(email);
+      if (!user) throw new Error("User not found");
+
+      await authUtils.sendPasswordResetEmail(email);
+      return true;
+    } catch (err: any) {
+      console.error("❌ resetPasswordWithOtp error:", err);
+      throw err;
+    }
+  },
+
   updateUserPassword: async (
     userId: string,
     _newPassword: string
@@ -325,9 +415,7 @@ export const authUtils = {
         throw new Error("User not found");
       }
 
-      // Send password reset email instead of directly changing password
       await authUtils.sendPasswordResetEmail(user.email);
-      
       console.log("✅ Password reset email sent to user");
       return true;
     } catch (err) {
@@ -336,7 +424,6 @@ export const authUtils = {
     }
   },
 
-  /** Send password reset email to user */
   sendPasswordResetEmail: async (email: string): Promise<boolean> => {
     try {
       await firebaseSendPasswordResetEmail(auth, email);
@@ -354,7 +441,6 @@ export const authUtils = {
     }
   },
 
-  /** Soft delete user (set isActive=false) */
   deleteUser: async (id: string): Promise<boolean> => {
     try {
       const ref = doc(db, USERS_COLLECTION, id);
@@ -370,7 +456,6 @@ export const authUtils = {
     }
   },
 
-  /** Hard delete user (remove from Firestore completely) */
   hardDeleteUser: async (id: string): Promise<boolean> => {
     try {
       const ref = doc(db, USERS_COLLECTION, id);
@@ -383,7 +468,6 @@ export const authUtils = {
     }
   },
 
-  /** Check duplicate username */
   usernameExists: async (
     username: string,
     excludeId?: string
@@ -394,7 +478,6 @@ export const authUtils = {
     );
   },
 
-  /** Check duplicate email */
   emailExists: async (email: string, excludeId?: string): Promise<boolean> => {
     const all = await authUtils.getAllUsers();
     return all.some(
@@ -402,7 +485,6 @@ export const authUtils = {
     );
   },
 
-  /** Persist current user in session */
   getCurrentUser: (): User | null => {
     try {
       const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -417,7 +499,6 @@ export const authUtils = {
     else sessionStorage.removeItem(AUTH_STORAGE_KEY);
   },
 
-  /** Initialize default admin if Firestore empty */
   initializeDefaultAdmin: async (): Promise<void> => {
     try {
       const all = await authUtils.getAllUsers();
@@ -444,6 +525,43 @@ export const authUtils = {
       console.error("❌ Error initializing admin:", error);
     }
   },
+
+  /** Admin changes their own password */
+  changeOwnPassword: async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> => {
+    const fUser = auth.currentUser;
+
+    if (!fUser || !fUser.email) {
+      throw new Error("No authenticated user.");
+    }
+
+    const cred = EmailAuthProvider.credential(fUser.email, currentPassword);
+    await reauthenticateWithCredential(fUser, cred);
+    await updatePassword(fUser, newPassword);
+
+    const userDoc = await authUtils.getUserByFirebaseUid(fUser.uid);
+    if (userDoc) {
+      const ref = doc(db, USERS_COLLECTION, userDoc.id);
+      await updateDoc(ref, {
+        passwordChangedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    console.log("✅ Password changed for current user");
+  },
+
+  /** Admin changes another user's password via Cloud Function */
+  adminChangeUserPassword: async (
+    userId: string,
+    newPassword: string
+  ): Promise<void> => {
+    const callable = httpsCallable(functions, "adminUpdateUserPassword");
+    await callable({ uid: userId, newPassword });
+    console.log("✅ Admin updated password for user:", userId);
+  },
 };
 
 /* ───────────────────────────────
@@ -452,7 +570,7 @@ export const authUtils = {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -460,26 +578,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const init = async () => {
       await authUtils.initializeDefaultAdmin();
 
-      // Only listen to primary auth state changes
       const unsub = onAuthStateChanged(auth, async (fUser) => {
         if (fUser) {
           const userData = await authUtils.getUserByFirebaseUid(fUser.uid);
           if (userData && userData.isActive) {
-            setCurrentUser(userData);
+            setCurrentUserState(userData);
             setIsAuthenticated(true);
             authUtils.setCurrentUser(userData);
           } else {
-            setCurrentUser(null);
+            setCurrentUserState(null);
             setIsAuthenticated(false);
           }
         } else {
-          setCurrentUser(null);
+          setCurrentUserState(null);
           setIsAuthenticated(false);
         }
         setIsLoading(false);
       });
+
       return unsub;
     };
+
     const unsubPromise = init();
     return () => {
       unsubPromise.then((u) => u && u());
@@ -497,7 +616,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       rememberMe
     );
     if (user) {
-      setCurrentUser(user);
+      setCurrentUserState(user);
       setIsAuthenticated(true);
       authUtils.setCurrentUser(user);
       return true;
@@ -507,7 +626,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     await signOut(auth);
-    setCurrentUser(null);
+    setCurrentUserState(null);
     setIsAuthenticated(false);
     authUtils.setCurrentUser(null);
     localStorage.removeItem(REMEMBER_ME_KEY);

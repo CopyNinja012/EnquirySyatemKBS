@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth, authUtils } from "../contexts/AuthContext";
 import {
   Eye,
   EyeOff,
@@ -15,43 +15,28 @@ import {
 
 const LOGO_SRC = "/favicon1.png"; // change to "/favicon1.svg" or "/kali_byte_logo.png" if needed
 
-// Mock API functions - Replace these with your actual API calls
+// Real API functions using authUtils (Firebase + Firestore)
 const sendPasswordResetOTP = async (email: string): Promise<boolean> => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Sending OTP to ${email}`);
-      resolve(true);
-    }, 1500);
-  });
+  // Stores OTP in Firestore and (optionally) sends it via EmailJS
+  await authUtils.sendOtpToEmail(email);
+  return true;
 };
 
-const verifyOTP = async (_email: string, otp: string): Promise<boolean> => {
-  // Simulate API call
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Mock verification - accept "123456" as valid OTP
-      if (otp === "123456") {
-        resolve(true);
-      } else {
-        reject(new Error("Invalid OTP. Please try again."));
-      }
-    }, 1000);
-  });
+const verifyOTP = async (email: string, otp: string): Promise<boolean> => {
+  // Verifies OTP in Firestore, checks expiration
+  await authUtils.verifyOtp(email, otp);
+  return true;
 };
 
+// After OTP + new-password confirmation, send Firebase's reset email.
+// The actual new password will be set by user via the email link.
 const resetPassword = async (
   email: string,
   _otp: string,
   _newPassword: string
 ): Promise<boolean> => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Resetting password for ${email}`);
-      resolve(true);
-    }, 1500);
-  });
+  await authUtils.resetPasswordWithOtp(email);
+  return true;
 };
 
 type ForgotPasswordStep = "email" | "otp" | "newPassword" | "success";
@@ -107,7 +92,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (otpTimer > 0) {
       const timer = setTimeout(() => {
-        setOtpTimer(otpTimer - 1);
+        setOtpTimer((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -270,6 +255,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setForgotPasswordError("");
 
+    // These checks are just for UX; the actual password is set via email link.
     if (!newPassword.trim()) {
       setForgotPasswordError("Please enter a new password");
       return;
@@ -293,6 +279,7 @@ const Login: React.FC = () => {
     setForgotPasswordLoading(true);
 
     try {
+      // This sends a real Firebase password reset email to resetEmail
       await resetPassword(resetEmail, otp, newPassword);
       setForgotPasswordStep("success");
       setForgotPasswordError("");
@@ -375,7 +362,7 @@ const Login: React.FC = () => {
                   {forgotPasswordStep === "email" && "Forgot Password"}
                   {forgotPasswordStep === "otp" && "Verify OTP"}
                   {forgotPasswordStep === "newPassword" && "Reset Password"}
-                  {forgotPasswordStep === "success" && "Success!"}
+                  {forgotPasswordStep === "success" && "Check Your Email"}
                 </h3>
               </div>
               <button
@@ -391,7 +378,8 @@ const Login: React.FC = () => {
               <form onSubmit={handleSendOTP} className="space-y-4">
                 <p className="text-sm text-gray-600 mb-4">
                   Enter your email address and we'll send you a one-time
-                  password (OTP) to reset your password.
+                  password (OTP) to verify your identity before sending a
+                  password reset link.
                 </p>
 
                 <div>
@@ -586,9 +574,7 @@ const Login: React.FC = () => {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mt-4">
                   <p className="flex items-start gap-2">
                     <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                    <span>
-                      For demo purposes, use OTP: <strong>123456</strong>
-                    </span>
+                    <span>OTP is valid for 10 minutes.</span>
                   </p>
                 </div>
               </form>
@@ -598,7 +584,10 @@ const Login: React.FC = () => {
             {forgotPasswordStep === "newPassword" && (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <p className="text-sm text-gray-600 mb-4">
-                  Enter your new password below.
+                  Enter your new password below. After confirmation, we will
+                  send a password reset email to{" "}
+                  <strong>{resetEmail}</strong>. Use that email link to
+                  finalize your new password.
                 </p>
 
                 <div>
@@ -739,10 +728,10 @@ const Login: React.FC = () => {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           />
                         </svg>
-                        Resetting...
+                        Sending link...
                       </>
                     ) : (
-                      "Reset Password"
+                      "Send Reset Link"
                     )}
                   </button>
                 </div>
@@ -760,11 +749,13 @@ const Login: React.FC = () => {
 
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    Password Reset Successful!
+                    Reset Link Sent!
                   </h4>
                   <p className="text-sm text-gray-600">
-                    Your password has been reset successfully. You can now log
-                    in with your new password.
+                    We have sent a password reset email to{" "}
+                    <strong>{resetEmail}</strong>. Open the link in that email
+                    to set a new password. After that, you can log in here with
+                    your new password.
                   </p>
                 </div>
 

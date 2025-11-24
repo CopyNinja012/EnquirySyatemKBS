@@ -20,7 +20,7 @@ import {
 --------------------------------------------- */
 const ALL_PERMISSIONS = [
   "Add Enquiry",
-  // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
+  // "Search Enquiry",
   "View Enquiry",
   "Manage Payment Details",
   "Today's Follow-ups",
@@ -34,7 +34,7 @@ const ROLE_DEFAULTS: Record<"admin" | "user", string[]> = {
   admin: [...ALL_PERMISSIONS],
   user: [
     "Add Enquiry",
-    // "Search Enquiry", // ⚠️ DISABLED - Search Enquiry Feature
+    // "Search Enquiry",
     "View Enquiry",
     "Today's Follow-ups",
     "View Advertisement Data",
@@ -114,12 +114,13 @@ const UserManagement: React.FC = () => {
     if (!formData.fullName.trim()) e.fullName = "Full name required";
     if (!formData.email.trim()) e.email = "Email required";
 
-    // Password validation
     if (!isEdit && !formData.password.trim()) {
       e.password = "Password required";
+    } else if (!isEdit && formData.password.length < 6) {
+      e.password = "Password must be at least 6 characters";
     } else if (isEdit && changePassword && !formData.password.trim()) {
       e.password = "Password required when changing password";
-    } else if (formData.password.trim() && formData.password.length < 6) {
+    } else if (isEdit && changePassword && formData.password.length < 6) {
       e.password = "Password must be at least 6 characters";
     }
 
@@ -131,7 +132,7 @@ const UserManagement: React.FC = () => {
      CRUD actions
   --------------------------------------------- */
   async function handleAdd() {
-    if (!(await validate())) {
+    if (!(await validate(false))) {
       showToast("Please fix form errors.", "error");
       return;
     }
@@ -169,20 +170,22 @@ const UserManagement: React.FC = () => {
           ? formData.password
           : undefined;
 
-      await authUtils.updateUser(
-        selectedUser.id,
-        {
-          username: formData.username,
-          fullName: formData.fullName,
-          email: formData.email,
-          role: formData.role,
-          permissions: formData.permissions,
-        },
-        newPassword
-      );
+      // 1) Update user profile in Firestore
+      await authUtils.updateUser(selectedUser.id, {
+        username: formData.username,
+        fullName: formData.fullName,
+        email: formData.email,
+        role: formData.role,
+        permissions: formData.permissions,
+      });
+
+      // 2) If admin chose to change password, call Cloud Function
+      if (newPassword) {
+        await authUtils.adminChangeUserPassword(selectedUser.id, newPassword);
+      }
 
       showToast(
-        changePassword
+        newPassword
           ? "User and password updated successfully!"
           : "User updated successfully!",
         "success"
@@ -299,7 +302,7 @@ const UserManagement: React.FC = () => {
                             </td>
                             <td className="px-4 py-2">
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                className={`inline-flex itemsCenter gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                                   u.role === "admin"
                                     ? "bg-purple-100 text-purple-700"
                                     : "bg-blue-100 text-blue-700"
@@ -336,6 +339,7 @@ const UserManagement: React.FC = () => {
                                 >
                                   <Edit size={16} />
                                 </button>
+
                                 <button
                                   className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                                   disabled={isCurrentUser}
@@ -652,7 +656,7 @@ const UserModal = ({
 
               {changePassword && (
                 <div className="mt-2 sm:mt-3">
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                  <label className="block text-sm fontMedium mb-1 text-gray-700">
                     New Password
                   </label>
                   <div className="relative">

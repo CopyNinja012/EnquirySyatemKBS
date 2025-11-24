@@ -1,7 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUserShield, FaEnvelope, FaCalendar, FaShieldAlt } from "react-icons/fa";
-import { useAuth } from "../contexts/AuthContext";
+import {
+  FaUserShield,
+  FaEnvelope,
+  FaCalendar,
+  FaShieldAlt,
+  FaLock,
+} from "react-icons/fa";
+import { useAuth, authUtils } from "../contexts/AuthContext";
 
 const BRANDING = {
   companyName: "Kali Byte Solutions",
@@ -33,6 +39,54 @@ const AdminProfile: React.FC = () => {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // ---------- Change password state ----------
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNew, setConfirmNew] = useState("");
+  const [changing, setChanging] = useState(false);
+  const [pwdError, setPwdError] = useState("");
+  const [pwdSuccess, setPwdSuccess] = useState("");
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError("");
+    setPwdSuccess("");
+
+    if (!currentPassword || !newPassword || !confirmNew) {
+      setPwdError("Please fill all fields.");
+      return;
+    }
+    if (newPassword !== confirmNew) {
+      setPwdError("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwdError("New password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setChanging(true);
+      await authUtils.changeOwnPassword(currentPassword, newPassword);
+      setPwdSuccess(
+        "Password updated successfully. Use the new password next time you log in."
+      );
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNew("");
+    } catch (err: any) {
+      if (err.code === "auth/wrong-password") {
+        setPwdError("Current password is incorrect.");
+      } else if (err.code === "auth/requires-recent-login") {
+        setPwdError("Please log out and log back in, then try again.");
+      } else {
+        setPwdError(err?.message || "Failed to change password.");
+      }
+    } finally {
+      setChanging(false);
+    }
   };
 
   return (
@@ -165,6 +219,75 @@ const AdminProfile: React.FC = () => {
           </div>
         )}
 
+        {/* Change Password Card */}
+        <div className="bg-white border rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+            <FaLock className="text-sky-600 text-sm sm:text-base flex-shrink-0" />
+            <span>Change Password</span>
+          </h3>
+
+          <form
+            onSubmit={handleChangePassword}
+            className="space-y-3 sm:space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                Current password
+              </label>
+              <input
+                type="password"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  New password
+                </label>
+                <input
+                  type="password"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  value={confirmNew}
+                  onChange={(e) => setConfirmNew(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {pwdError && (
+              <p className="text-sm text-red-600 mt-1">{pwdError}</p>
+            )}
+            {pwdSuccess && (
+              <p className="text-sm text-green-600 mt-1">{pwdSuccess}</p>
+            )}
+
+            <p className="text-xs text-gray-500 mt-1">
+              Password must be at least 8 characters long.
+            </p>
+
+            <button
+              type="submit"
+              disabled={changing}
+              className="mt-3 inline-flex items-center px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 disabled:opacity-50"
+            >
+              {changing ? "Updating..." : "Update Password"}
+            </button>
+          </form>
+        </div>
+
         {/* Company Card */}
         <div className="bg-white border rounded-xl shadow-sm p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
@@ -203,7 +326,8 @@ const AdminProfile: React.FC = () => {
             </svg>
             <div>
               <p className="text-xs text-blue-700 leading-relaxed">
-                Swipe horizontally to view all profile details if content appears cut off.
+                Swipe horizontally to view all profile details if content
+                appears cut off.
               </p>
             </div>
           </div>
