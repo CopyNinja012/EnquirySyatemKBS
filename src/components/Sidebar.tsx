@@ -13,6 +13,7 @@ import {
   FaSignOutAlt,
   FaBell,
   FaUserCircle,
+  FaBars, // NEW: mobile menu icon
 } from "react-icons/fa";
 import { Upload, FileSpreadsheet, Shield } from "lucide-react";
 import { storageUtils } from "../utils/localStorage";
@@ -121,7 +122,7 @@ const Sidebar: React.FC = () => {
       group: "main",
       badge: stats.totalEnquiries,
     },
-    // Payment Details entry (note: permission string should match your context)
+    // Payment Details entry
     {
       path: "/payment-details",
       label: "Payment Details",
@@ -216,6 +217,17 @@ const Sidebar: React.FC = () => {
 
   return (
     <>
+      {/* Mobile "open sidebar" button when sidebar is collapsed */}
+      {isCollapsed && (
+        <button
+          onClick={toggleSidebar}
+          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow md:hidden"
+          aria-label="Open menu"
+        >
+          <FaBars className="w-5 h-5 text-gray-700" />
+        </button>
+      )}
+
       {/* Backdrop for mobile when sidebar open */}
       {!isCollapsed && (
         <div
@@ -238,7 +250,9 @@ const Sidebar: React.FC = () => {
           <button
             onClick={toggleSidebar}
             className="p-2 hover:bg-gray-100 rounded-lg"
-            title={isCollapsed ? "Expand Sidebar / Open Menu" : "Collapse Sidebar"}
+            title={
+              isCollapsed ? "Expand Sidebar / Open Menu" : "Collapse Sidebar"
+            }
           >
             {isCollapsed ? (
               <FaChevronRight className="w-4 h-4 text-gray-600" />
